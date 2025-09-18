@@ -15,7 +15,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	siteStatusRepo := repository2.NewSiteStatusRepo(db)
 	siteHandler := handlers2.NewSiteHandler(siteRepo, siteStatusRepo)
 
-	monitor.StartMonitoring(siteRepo)
+	monitor.StartMonitoring(siteRepo, siteStatusRepo)
 
 	router.POST("/sites", siteHandler.CreateSite)
 	router.GET("/sites", siteHandler.GetSites)

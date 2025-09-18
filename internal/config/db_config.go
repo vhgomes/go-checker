@@ -17,5 +17,10 @@ func InitDB() *gorm.DB {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	err = db.AutoMigrate(&repository.SiteStatusHistory{})
+	if err != nil {
+		log.Fatal(err)
+	}
 	return db
 }
