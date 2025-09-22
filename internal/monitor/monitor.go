@@ -8,18 +8,25 @@ import (
 )
 
 func StartMonitoring(repo *repository.SiteRepo, statusRepo *repository.SiteStatusRepo) {
-	ticker := time.NewTicker(30 * time.Second) // checa a cada 30s
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				sites, _ := repo.GetSites()
-				for _, site := range sites {
-					go checkSite(repo, site, statusRepo)
-				}
-			}
-		}
-	}()
+	sites, _ := repo.GetSites()
+	for _, site := range sites {
+		go monitorSite(repo, statusRepo, site)
+	}
+}
+
+func monitorSite(repo *repository.SiteRepo, statusRepo *repository.SiteStatusRepo, site repository.Site) {
+	interval := 30 // default
+	if site.CheckInterval > 0 {
+		interval = site.CheckInterval
+	}
+
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
+	defer ticker.Stop()
+
+	for {
+		<-ticker.C
+		checkSite(repo, site, statusRepo)
+	}
 }
 
 func checkSite(repo *repository.SiteRepo, site repository.Site, statusRepo *repository.SiteStatusRepo) {

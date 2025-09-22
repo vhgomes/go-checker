@@ -3,9 +3,10 @@ package repository
 import "gorm.io/gorm"
 
 type Site struct {
-	ID     uint   `gorm:"primaryKey"`
-	URL    string `gorm:"unique"`
-	Status string
+	ID            uint   `gorm:"primaryKey"`
+	URL           string `gorm:"unique"`
+	Status        string
+	CheckInterval int
 }
 
 type SiteRepo struct {
@@ -16,8 +17,18 @@ func NewSiteRepo(db *gorm.DB) *SiteRepo {
 	return &SiteRepo{DB: db}
 }
 
-func (r *SiteRepo) AddSite(url string) error {
-	return r.DB.Create(&Site{URL: url, Status: "unknown"}).Error
+func (r *SiteRepo) AddSite(url string, interval int) error {
+	if interval <= 0 {
+		interval = 30 // default de 30s
+	}
+
+	site := Site{
+		URL:           url,
+		Status:        "unknown",
+		CheckInterval: interval,
+	}
+
+	return r.DB.Create(&site).Error
 }
 
 func (r *SiteRepo) GetSites() ([]Site, error) {
@@ -27,5 +38,7 @@ func (r *SiteRepo) GetSites() ([]Site, error) {
 }
 
 func (r *SiteRepo) UpdateStatus(id uint, status string) error {
-	return r.DB.Model(&Site{}).Where("id = ?", id).Update("status", status).Error
+	return r.DB.Model(&Site{}).
+		Where("id = ?", id).
+		Update("status", status).Error
 }

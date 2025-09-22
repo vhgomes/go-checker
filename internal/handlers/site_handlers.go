@@ -20,7 +20,8 @@ func NewSiteHandler(siteRepo *repository.SiteRepo, siteStatusRepo *repository.Si
 
 func (h *SiteHandler) CreateSite(c *gin.Context) {
 	var body struct {
-		URL string `json:"url"`
+		URL           string `json:"url"`
+		CheckInterval int    `json:"check_interval"` // novo campo
 	}
 
 	if err := c.ShouldBindJSON(&body); err != nil {
@@ -31,7 +32,8 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		return
 	}
 
-	if err := h.siteRepo.AddSite(body.URL); err != nil {
+	// agora passa URL + intervalo
+	if err := h.siteRepo.AddSite(body.URL, body.CheckInterval); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":  http.StatusInternalServerError,
 			"error": "error adding site",
@@ -40,7 +42,8 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"code": http.StatusOK,
+		"code":    http.StatusOK,
+		"message": "site created successfully",
 	})
 }
 
@@ -54,6 +57,7 @@ func (h *SiteHandler) GetSites(c *gin.Context) {
 		return
 	}
 
+	// já retorna o check_interval no JSON
 	c.JSON(http.StatusOK, gin.H{
 		"code": http.StatusOK,
 		"data": sites,
