@@ -37,14 +37,17 @@ func (nsr *SiteStatusRepo) Insert(siteId uint, status string, statusCode int, re
 func (nsr *SiteStatusRepo) GetAllSiteStatusBySiteId(siteId uint) ([]SiteStatusHistory, error) {
 	var status []SiteStatusHistory
 	err := nsr.DB.Where("site_id = ?", siteId).Find(&status).Error
-	return status, err
+	if err != nil {
+		return nil, err
+	}
+	return status, nil
 }
 
 func (nsr *SiteStatusRepo) GetAllSiteStatusBySiteIdAndDate(siteId uint, firstDate, secondDate time.Time) ([]SiteStatusHistory, error) {
 	var status []SiteStatusHistory
 
 	err := nsr.DB.
-		Where("site_id = ? AND created_at BETWEEN ? AND ?", siteId, firstDate, secondDate).
+		Where("site_id = ? AND checked_at BETWEEN ? AND ?", siteId, firstDate, secondDate).
 		Find(&status).Error
 	if err != nil {
 		return nil, err

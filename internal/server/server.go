@@ -19,6 +19,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	router.POST("/sites", siteHandler.CreateSite)
 	router.GET("/sites", siteHandler.GetSites)
+	router.GET("/sites/status/:siteId", siteHandler.GetAllSiteStatusBySiteId)
+	router.GET("/sites/status/:siteId/:firstDate/:secondDate", siteHandler.GetAllSiteStatusBySiteIdAndDate)
 
 	return router
 }
