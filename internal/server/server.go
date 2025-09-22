@@ -14,6 +14,8 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	siteRepo := repository2.NewSiteRepo(db)
 	siteStatusRepo := repository2.NewSiteStatusRepo(db)
 	siteHandler := handlers2.NewSiteHandler(siteRepo, siteStatusRepo)
+	userRepo := repository2.NewUserRepo(db)
+	userHandler := handlers2.NewUserHandler(userRepo)
 
 	monitor.StartMonitoring(siteRepo, siteStatusRepo)
 
@@ -21,6 +23,9 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	router.GET("/sites", siteHandler.GetSites)
 	router.GET("/sites/status/:siteId", siteHandler.GetAllSiteStatusBySiteId)
 	router.GET("/sites/status/:siteId/:firstDate/:secondDate", siteHandler.GetAllSiteStatusBySiteIdAndDate)
+
+	router.POST("/users", userHandler.RegisterUser)
+	router.POST("/users", userHandler.Login)
 
 	return router
 }
