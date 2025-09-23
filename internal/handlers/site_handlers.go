@@ -72,6 +72,23 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 }
 
 func (h *SiteHandler) GetSites(c *gin.Context) {
+	sites, err := h.siteRepo.GetSites()
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":  http.StatusInternalServerError,
+			"error": "failed to get all sites",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": http.StatusOK,
+		"data": sites,
+	})
+}
+
+func (h *SiteHandler) GetSitesByUserId(c *gin.Context) {
 	userAny, exists := c.Get("user_id")
 
 	if !exists {
@@ -262,22 +279,5 @@ func (h *SiteHandler) GetAllSiteStatusBySiteIdAndDate(c *gin.Context) {
 		"data": status,
 	})
 
-	return
-}
-
-func (h *SiteHandler) Test(c *gin.Context) {
-	test, _ := c.Get("user_id")
-	if test == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":  http.StatusInternalServerError,
-			"error": "no user id found",
-		})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"code":    http.StatusOK,
-		"data":    "ok",
-		"user_id": test,
-	})
 	return
 }

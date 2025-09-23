@@ -51,3 +51,9 @@ func (r *SiteRepo) UpdateStatus(id uint, status string) error {
 		Where("id = ?", id).
 		Update("status", status).Error
 }
+
+func (r *SiteRepo) GetSites() ([]Site, error) {
+	var sites []Site
+	err := r.DB.Find(&sites).Error
+	return sites, err
+}
