@@ -1,12 +1,18 @@
 package repository
 
-import "gorm.io/gorm"
+import (
+	"gorm.io/gorm"
+	"time"
+)
 
 type Site struct {
-	ID            uint   `gorm:"primaryKey"`
-	URL           string `gorm:"unique"`
+	ID            uint `gorm:"primaryKey"`
+	URL           string
+	UserId        uint
 	Status        string
 	CheckInterval int
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 type SiteRepo struct {
@@ -17,23 +23,26 @@ func NewSiteRepo(db *gorm.DB) *SiteRepo {
 	return &SiteRepo{DB: db}
 }
 
-func (r *SiteRepo) AddSite(url string, interval int) error {
+func (r *SiteRepo) AddSite(url string, interval int, user uint) error {
 	if interval <= 0 {
-		interval = 30 // default de 30s
+		interval = 60
 	}
 
 	site := Site{
 		URL:           url,
 		Status:        "unknown",
 		CheckInterval: interval,
+		UserId:        user,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	}
 
 	return r.DB.Create(&site).Error
 }
 
-func (r *SiteRepo) GetSites() ([]Site, error) {
+func (r *SiteRepo) GetSitesByUserId(userId uint) ([]Site, error) {
 	var sites []Site
-	err := r.DB.Find(&sites).Error
+	err := r.DB.Find(&sites).Where("user_id = ?", userId).Error
 	return sites, err
 }
 

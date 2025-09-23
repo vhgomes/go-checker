@@ -24,6 +24,27 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		CheckInterval int    `json:"check_interval"` // novo campo
 	}
 
+	userAny, exists := c.Get("user_id")
+
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":  http.StatusBadRequest,
+			"error": "bad request, failed to get user id",
+		})
+		return
+	}
+
+	userFloat, ok := userAny.(float64)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":  http.StatusBadRequest,
+			"error": "bad request, failed to get user id",
+		})
+		return
+	}
+
+	userId := uint(userFloat)
+
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":  http.StatusBadRequest,
@@ -32,8 +53,11 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		return
 	}
 
-	// agora passa URL + intervalo
-	if err := h.siteRepo.AddSite(body.URL, body.CheckInterval); err != nil {
+	if err := h.siteRepo.AddSite(
+		body.URL,
+		body.CheckInterval,
+		userId,
+	); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":  http.StatusInternalServerError,
 			"error": "error adding site",
@@ -48,7 +72,28 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 }
 
 func (h *SiteHandler) GetSites(c *gin.Context) {
-	sites, err := h.siteRepo.GetSites()
+	userAny, exists := c.Get("user_id")
+
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":  http.StatusBadRequest,
+			"error": "bad request, failed to get user id",
+		})
+		return
+	}
+
+	userFloat, ok := userAny.(float64)
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":  http.StatusBadRequest,
+			"error": "bad request, failed to get user id",
+		})
+		return
+	}
+
+	userId := uint(userFloat)
+	sites, err := h.siteRepo.GetSitesByUserId(userId)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":  http.StatusInternalServerError,
@@ -57,7 +102,6 @@ func (h *SiteHandler) GetSites(c *gin.Context) {
 		return
 	}
 
-	// já retorna o check_interval no JSON
 	c.JSON(http.StatusOK, gin.H{
 		"code": http.StatusOK,
 		"data": sites,
