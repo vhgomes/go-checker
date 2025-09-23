@@ -88,7 +88,7 @@ func (h *SiteHandler) GetSites(c *gin.Context) {
 	})
 }
 
-func (h *SiteHandler) GetSitesByUserId(c *gin.Context) {
+func (h *SiteHandler) GetAllSiteStatusByUserId(c *gin.Context) {
 	userAny, exists := c.Get("user_id")
 
 	if !exists {
@@ -103,65 +103,47 @@ func (h *SiteHandler) GetSitesByUserId(c *gin.Context) {
 	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"code":  http.StatusBadRequest,
-			"error": "bad request, failed to get user id",
+			"error": "bad request, failed to parse user id",
 		})
 		return
 	}
 
 	userId := uint(userFloat)
-	sites, err := h.siteRepo.GetSitesByUserId(userId)
 
+	sites, err := h.siteRepo.GetSitesByUserId(userId)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"code":  http.StatusInternalServerError,
-			"error": "failed to get all sites",
+			"error": "failed to get sites by user",
 		})
 		return
+	}
+
+	if len(sites) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{
+			"code":  http.StatusNotFound,
+			"error": "no sites found for this user",
+		})
+		return
+	}
+
+	allStatus := make(map[uint][]repository.SiteStatusHistory)
+	for _, site := range sites {
+		status, err := h.siteStatusRepo.GetAllSiteStatusBySiteId(site.ID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"code":  http.StatusInternalServerError,
+				"error": "error getting site status",
+			})
+			return
+		}
+		allStatus[site.ID] = status
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"code": http.StatusOK,
-		"data": sites,
+		"data": allStatus,
 	})
-}
-
-func (h *SiteHandler) InsertSiteStatus(c *gin.Context) {
-	var body struct {
-		SiteID       uint      `json:"site_id"`
-		Status       string    `json:"status"`
-		StatusCode   int       `json:"status_code"`
-		ResponseTime float64   `json:"response_time"`
-		CheckedAt    time.Time `json:"checked_at"`
-	}
-
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":  http.StatusBadRequest,
-			"error": "bad request, failed to bindjson",
-		})
-		return
-	}
-
-	if err := h.siteStatusRepo.Insert(
-		body.SiteID,
-		body.Status,
-		body.StatusCode,
-		body.ResponseTime,
-		body.CheckedAt,
-	); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":  http.StatusInternalServerError,
-			"error": err.Error(),
-		})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{
-		"code": http.StatusCreated,
-		"data": "site status inserido com sucesso",
-	})
-
-	return
 }
 
 func (h *SiteHandler) GetAllSiteStatusBySiteId(c *gin.Context) {
@@ -277,6 +259,45 @@ func (h *SiteHandler) GetAllSiteStatusBySiteIdAndDate(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": http.StatusOK,
 		"data": status,
+	})
+
+	return
+}
+
+func (h *SiteHandler) InsertSiteStatus(c *gin.Context) {
+	var body struct {
+		SiteID       uint      `json:"site_id"`
+		Status       string    `json:"status"`
+		StatusCode   int       `json:"status_code"`
+		ResponseTime float64   `json:"response_time"`
+		CheckedAt    time.Time `json:"checked_at"`
+	}
+
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"code":  http.StatusBadRequest,
+			"error": "bad request, failed to bindjson",
+		})
+		return
+	}
+
+	if err := h.siteStatusRepo.Insert(
+		body.SiteID,
+		body.Status,
+		body.StatusCode,
+		body.ResponseTime,
+		body.CheckedAt,
+	); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":  http.StatusInternalServerError,
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"code": http.StatusCreated,
+		"data": "site status inserido com sucesso",
 	})
 
 	return
