@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/gin-gonic/gin"
 	handlers2 "go-checker/internal/handlers"
+	"go-checker/internal/middlewares"
 	"go-checker/internal/monitor"
 	repository2 "go-checker/internal/repository"
 	"gorm.io/gorm"
@@ -19,13 +20,18 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 
 	monitor.StartMonitoring(siteRepo, siteStatusRepo)
 
-	router.POST("/sites", siteHandler.CreateSite)
-	router.GET("/sites", siteHandler.GetSites)
-	router.GET("/sites/status/:siteId", siteHandler.GetAllSiteStatusBySiteId)
-	router.GET("/sites/status/:siteId/:firstDate/:secondDate", siteHandler.GetAllSiteStatusBySiteIdAndDate)
+	authProtected := router.Group("/")
+	authProtected.Use(middlewares.MiddlewareJWT())
+	{
+		authProtected.GET("/test", siteHandler.Test)
+		authProtected.POST("/sites", siteHandler.CreateSite)
+		authProtected.GET("/sites", siteHandler.GetSites)
+		authProtected.GET("/sites/status/:siteId", siteHandler.GetAllSiteStatusBySiteId)
+		authProtected.GET("/sites/status/:siteId/:firstDate/:secondDate", siteHandler.GetAllSiteStatusBySiteIdAndDate)
+	}
 
-	router.POST("/users", userHandler.RegisterUser)
-	router.POST("/users", userHandler.Login)
+	router.POST("/register", userHandler.RegisterUser)
+	router.POST("/login", userHandler.Login)
 
 	return router
 }

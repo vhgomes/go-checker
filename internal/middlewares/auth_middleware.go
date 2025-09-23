@@ -1,6 +1,7 @@
 package middlewares
 
 import (
+	"go-checker/internal/config"
 	"net/http"
 	"strings"
 
@@ -30,7 +31,7 @@ func MiddlewareJWT() gin.HandlerFunc {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, jwt.ErrSignatureInvalid
 			}
-			return jwtSecret, nil
+			return config.JwtSecret, nil
 		})
 
 		if err != nil || !token.Valid {

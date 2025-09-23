@@ -22,5 +22,11 @@ func InitDB() *gorm.DB {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	err = db.AutoMigrate(&repository.User{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	return db
 }

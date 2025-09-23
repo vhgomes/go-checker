@@ -220,3 +220,20 @@ func (h *SiteHandler) GetAllSiteStatusBySiteIdAndDate(c *gin.Context) {
 
 	return
 }
+
+func (h *SiteHandler) Test(c *gin.Context) {
+	test, _ := c.Get("user_id")
+	if test == nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"code":  http.StatusInternalServerError,
+			"error": "no user id found",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"code":    http.StatusOK,
+		"data":    "ok",
+		"user_id": test,
+	})
+	return
+}

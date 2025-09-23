@@ -1,22 +1,19 @@
 package utils
 
 import (
-	"time"
-
 	"github.com/golang-jwt/jwt/v5"
+	"go-checker/internal/config"
+	"time"
 )
-
-var jwtSecret = []byte("minha_chave_super_secreta") // depois usar variável de ambiente
 
 func GenerateToken(userID uint, email string) (string, error) {
 	claims := jwt.MapClaims{
 		"user_id": userID,
 		"email":   email,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(), // expira em 24h
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 		"iat":     time.Now().Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-
-	return token.SignedString(jwtSecret)
+	return token.SignedString(config.JwtSecret)
 }
