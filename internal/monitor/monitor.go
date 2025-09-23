@@ -3,6 +3,7 @@ package monitor
 import (
 	"go-checker/internal/repository"
 	"log"
+	"math/rand"
 	"net/http"
 	"time"
 )
@@ -25,7 +26,7 @@ func monitorSite(repo *repository.SiteRepo, statusRepo *repository.SiteStatusRep
 
 	for {
 		<-ticker.C
-		checkSite(repo, site, statusRepo)
+		checkSiteRandom(repo, site, statusRepo)
 	}
 }
 
@@ -43,6 +44,34 @@ func checkSite(repo *repository.SiteRepo, site repository.Site, statusRepo *repo
 		}
 	} else {
 		statusCode = resp.StatusCode
+	}
+
+	if err := repo.UpdateStatus(site.ID, status); err != nil {
+		log.Printf("Erro ao atualizar status do site %d: %v", site.ID, err)
+	}
+
+	if err := statusRepo.Insert(
+		site.ID,
+		status,
+		statusCode,
+		responseTime,
+		time.Now(),
+	); err != nil {
+		log.Printf("Erro ao inserir histórico do site %d: %v", site.ID, err)
+	}
+
+	log.Printf("Site %s %s (statusCode=%d, responseTime=%.3fs)\n", site.URL, status, statusCode, responseTime)
+}
+
+func checkSiteRandom(repo *repository.SiteRepo, site repository.Site, statusRepo *repository.SiteStatusRepo) {
+	responseTime := rand.Float64()*1.9 + 0.1
+
+	statusCodes := []int{200, 200, 200, 404, 500} // mais chances de 200
+	statusCode := statusCodes[rand.Intn(len(statusCodes))]
+
+	status := "online"
+	if statusCode >= 400 {
+		status = "offline"
 	}
 
 	if err := repo.UpdateStatus(site.ID, status); err != nil {
