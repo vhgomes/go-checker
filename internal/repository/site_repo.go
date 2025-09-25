@@ -75,8 +75,14 @@ func (r *SiteRepo) DeleteSite(siteId uint, userId uint) error {
 	return result.Error
 }
 
-func (r *SiteRepo) GetSiteById(id uint) (error, error) {
-	return r.DB.First(&Site{ID: id}).Error, nil
+func (r *SiteRepo) GetSiteById(siteId uint, userId uint) (*Site, error) {
+	var site Site
+
+	if err := r.DB.Where("id = ? AND user_id = ?", siteId, userId).First(&site).Error; err != nil {
+		return nil, err
+	}
+
+	return &site, nil
 }
 
 func (r *SiteRepo) GetSitesByUserId(userId uint) ([]Site, error) {
