@@ -69,8 +69,9 @@ func (h *SiteHandler) DeleteSite(c *gin.Context) {
 func (h *SiteHandler) UpdateSite(c *gin.Context) {
 	idParam := c.Param("id")
 	siteID, err := strconv.ParseUint(idParam, 10, 64)
+
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid site id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id do site invalido"})
 		return
 	}
 
@@ -78,60 +79,37 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 		URL           string `json:"url"`
 		CheckInterval int    `json:"check_interval"`
 	}
+
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "corpo da requisição invalido"})
 		return
 	}
 
-	userAny, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
-		return
-	}
+	userAny, _ := c.Get("user_id")
 	userID := uint(userAny.(float64))
 
-	site, err := h.siteRepo.GetSiteById(uint(siteID))
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "site not found"})
+	if err := h.siteRepo.UpdateSite(uint(siteID), userID, body.URL, body.CheckInterval); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}
 
-	if site.UserId != userID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "you are not the owner of this site"})
-		return
-	}
-
-	if err := h.siteRepo.UpdateSite(uint(siteID), body.URL, body.CheckInterval); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update site"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "site updated successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "site atualizado com sucesso"})
 }
 
 func (h *SiteHandler) GetSiteById(c *gin.Context) {
 	idParam := c.Param("id")
 	siteID, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid site id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id do site invalido"})
 		return
 	}
 
-	userAny, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
-		return
-	}
+	userAny, _ := c.Get("user_id")
 	userID := uint(userAny.(float64))
 
-	site, err := h.siteRepo.GetSiteById(uint(siteID))
+	site, err := h.siteRepo.GetSiteById(uint(siteID), userID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "site not found"})
-		return
-	}
-
-	if site.UserId != userID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "you are not the owner of this site"})
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -139,20 +117,16 @@ func (h *SiteHandler) GetSiteById(c *gin.Context) {
 }
 
 func (h *SiteHandler) GetAllSitesByUser(c *gin.Context) {
-	sites, err := h.siteRepo.GetSites()
+	userAny, _ := c.Get("user_id")
+	userID := uint(userAny.(float64))
 
+	sites, err := h.siteRepo.GetSitesByUserId(userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":  http.StatusInternalServerError,
-			"error": "failed to get all sites",
-		})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "falha em pegar todos os sites"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"code": http.StatusOK,
-		"data": sites,
-	})
+	c.JSON(http.StatusOK, gin.H{"data": sites})
 }
 
 // Funções fora do escopo atual de desenvolvimento
