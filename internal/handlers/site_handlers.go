@@ -21,54 +21,29 @@ func NewSiteHandler(siteRepo *repository.SiteRepo, siteStatusRepo *repository.Si
 func (h *SiteHandler) CreateSite(c *gin.Context) {
 	var body struct {
 		URL           string `json:"url"`
-		CheckInterval int    `json:"check_interval"` // novo campo
+		CheckInterval int    `json:"check_interval"`
 	}
 
 	userAny, exists := c.Get("user_id")
 
 	if !exists {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":  http.StatusBadRequest,
-			"error": "bad request, failed to get user id",
-		})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "não autorizado"})
 		return
 	}
 
-	userFloat, ok := userAny.(float64)
-	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":  http.StatusBadRequest,
-			"error": "bad request, failed to get user id",
-		})
-		return
-	}
-
-	userId := uint(userFloat)
+	userID := uint(userAny.(float64))
 
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":  http.StatusBadRequest,
-			"error": "bad request, failed to bindjson",
-		})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "corpo da requisição invalido"})
 		return
 	}
 
-	if err := h.siteRepo.AddSite(
-		body.URL,
-		body.CheckInterval,
-		userId,
-	); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":  http.StatusInternalServerError,
-			"error": "error adding site",
-		})
+	if err := h.siteRepo.AddSite(body.URL, body.CheckInterval, userID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "falha ao criar o site"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"code":    http.StatusOK,
-		"message": "site created successfully",
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "site criado com sucesso"})
 }
 
 func (h *SiteHandler) DeleteSite(c *gin.Context) {
