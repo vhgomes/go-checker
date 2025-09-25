@@ -49,35 +49,21 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 func (h *SiteHandler) DeleteSite(c *gin.Context) {
 	idParam := c.Param("id")
 	siteID, err := strconv.ParseUint(idParam, 10, 64)
+
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid site id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id do site invalido"})
 		return
 	}
 
-	userAny, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
-		return
-	}
+	userAny, _ := c.Get("user_id")
 	userID := uint(userAny.(float64))
 
-	site, err := h.siteRepo.GetSiteById(uint(siteID))
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "site not found"})
+	if err := h.siteRepo.DeleteSite(uint(siteID), userID); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}
 
-	if site.UserId != userID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "you are not the owner of this site"})
-		return
-	}
-
-	if err := h.siteRepo.DeleteSite(uint(siteID)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete site"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "site deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "site deletado com sucesso"})
 }
 
 func (h *SiteHandler) UpdateSite(c *gin.Context) {
