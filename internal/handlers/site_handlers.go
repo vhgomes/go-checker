@@ -88,8 +88,13 @@ func (h *SiteHandler) GetSites(c *gin.Context) {
 	})
 }
 
-func (h *SiteHandler) GetAllSiteStatusByUserId(c *gin.Context) {
+func (h *SiteHandler) GetAllSiteStatusByUser(c *gin.Context) {
 	userAny, exists := c.Get("user_id")
+	pageParam := c.DefaultQuery("page", "1")
+	pageSizeParam := c.DefaultQuery("page_size", "10")
+
+	page, _ := strconv.Atoi(pageParam)
+	pageSize, _ := strconv.Atoi(pageSizeParam)
 
 	if !exists {
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -129,7 +134,7 @@ func (h *SiteHandler) GetAllSiteStatusByUserId(c *gin.Context) {
 
 	allStatus := make(map[uint][]repository.SiteStatusHistory)
 	for _, site := range sites {
-		status, err := h.siteStatusRepo.GetAllSiteStatusBySiteId(site.ID)
+		status, err := h.siteStatusRepo.GetAllSiteStatusBySiteIdPaginated(site.ID, page, pageSize)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"code":  http.StatusInternalServerError,
@@ -144,53 +149,6 @@ func (h *SiteHandler) GetAllSiteStatusByUserId(c *gin.Context) {
 		"code": http.StatusOK,
 		"data": allStatus,
 	})
-}
-
-func (h *SiteHandler) GetAllSiteStatusBySiteId(c *gin.Context) {
-	idParam := c.Param("siteId")
-
-	if idParam == "" {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":  http.StatusBadRequest,
-			"error": "bad request, failed to get site id",
-		})
-		return
-	}
-
-	siteId, err := strconv.ParseUint(idParam, 10, 32)
-
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":  http.StatusBadRequest,
-			"error": "bad request, failed to parse site id",
-		})
-		return
-	}
-
-	status, err := h.siteStatusRepo.GetAllSiteStatusBySiteId(uint(siteId))
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"code":  http.StatusInternalServerError,
-			"error": err.Error(),
-		})
-		return
-	}
-
-	if status == nil {
-		c.JSON(http.StatusNotFound, gin.H{
-			"code":  http.StatusNotFound,
-			"error": "no status registered on this site",
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"code": http.StatusOK,
-		"data": status,
-	})
-
-	return
 }
 
 func (h *SiteHandler) GetAllSiteStatusBySiteIdAndDate(c *gin.Context) {
@@ -264,6 +222,7 @@ func (h *SiteHandler) GetAllSiteStatusBySiteIdAndDate(c *gin.Context) {
 	return
 }
 
+// /////////////////////////////////////////////////////////////////
 func (h *SiteHandler) InsertSiteStatus(c *gin.Context) {
 	var body struct {
 		SiteID       uint      `json:"site_id"`

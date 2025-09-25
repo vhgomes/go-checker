@@ -34,9 +34,12 @@ func (nsr *SiteStatusRepo) Insert(siteId uint, status string, statusCode int, re
 	}).Error
 }
 
-func (nsr *SiteStatusRepo) GetAllSiteStatusBySiteId(siteId uint) ([]SiteStatusHistory, error) {
+func (nsr *SiteStatusRepo) GetAllSiteStatusBySiteIdPaginated(siteId uint, page, pageSize int) ([]SiteStatusHistory, error) {
 	var status []SiteStatusHistory
-	err := nsr.DB.Where("site_id = ?", siteId).Find(&status).Error
+
+	offset := (page - 1) * pageSize
+
+	err := nsr.DB.Where("site_id = ?", siteId).Order("checked_at desc").Limit(pageSize).Offset(offset).Find(&status).Error
 	if err != nil {
 		return nil, err
 	}
