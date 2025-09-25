@@ -65,9 +65,16 @@ func (r *SiteRepo) UpdateSite(siteId uint, userId uint, url string, interval int
 	return r.DB.Model(&site).Updates(updates).Error
 }
 
-func (r *SiteRepo) DeleteSite(id uint) error {
-	return r.DB.Delete(&Site{ID: id}).Error
+func (r *SiteRepo) DeleteSite(siteId uint, userId uint) error {
+	result := r.DB.Where("id = ? AND user_id = ?", siteId, userId).Delete(&Site{})
+
+	if result.RowsAffected == 0 {
+		return errors.New("site não encontrado ou site não pertence ao user")
+	}
+
+	return result.Error
 }
+
 func (r *SiteRepo) GetSiteById(id uint) (error, error) {
 	return r.DB.First(&Site{ID: id}).Error, nil
 }
