@@ -71,7 +71,113 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 	})
 }
 
-func (h *SiteHandler) GetSites(c *gin.Context) {
+func (h *SiteHandler) DeleteSite(c *gin.Context) {
+	idParam := c.Param("id")
+	siteID, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid site id"})
+		return
+	}
+
+	userAny, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
+		return
+	}
+	userID := uint(userAny.(float64))
+
+	site, err := h.siteRepo.GetSiteById(uint(siteID))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "site not found"})
+		return
+	}
+
+	if site.UserId != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "you are not the owner of this site"})
+		return
+	}
+
+	if err := h.siteRepo.DeleteSite(uint(siteID)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete site"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "site deleted successfully"})
+}
+
+func (h *SiteHandler) UpdateSite(c *gin.Context) {
+	idParam := c.Param("id")
+	siteID, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid site id"})
+		return
+	}
+
+	var body struct {
+		URL           string `json:"url"`
+		CheckInterval int    `json:"check_interval"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	userAny, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
+		return
+	}
+	userID := uint(userAny.(float64))
+
+	site, err := h.siteRepo.GetSiteById(uint(siteID))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "site not found"})
+		return
+	}
+
+	if site.UserId != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "you are not the owner of this site"})
+		return
+	}
+
+	if err := h.siteRepo.UpdateSite(uint(siteID), body.URL, body.CheckInterval); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update site"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "site updated successfully"})
+}
+
+func (h *SiteHandler) GetSiteById(c *gin.Context) {
+	idParam := c.Param("id")
+	siteID, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid site id"})
+		return
+	}
+
+	userAny, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not found"})
+		return
+	}
+	userID := uint(userAny.(float64))
+
+	site, err := h.siteRepo.GetSiteById(uint(siteID))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "site not found"})
+		return
+	}
+
+	if site.UserId != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "you are not the owner of this site"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": site})
+}
+
+func (h *SiteHandler) GetAllSitesByUser(c *gin.Context) {
 	sites, err := h.siteRepo.GetSites()
 
 	if err != nil {
@@ -88,6 +194,7 @@ func (h *SiteHandler) GetSites(c *gin.Context) {
 	})
 }
 
+// Funções fora do escopo atual de desenvolvimento
 func (h *SiteHandler) GetAllSiteStatusByUser(c *gin.Context) {
 	userAny, exists := c.Get("user_id")
 	pageParam := c.DefaultQuery("page", "1")
@@ -222,7 +329,6 @@ func (h *SiteHandler) GetAllSiteStatusBySiteIdAndDate(c *gin.Context) {
 	return
 }
 
-// /////////////////////////////////////////////////////////////////
 func (h *SiteHandler) InsertSiteStatus(c *gin.Context) {
 	var body struct {
 		SiteID       uint      `json:"site_id"`

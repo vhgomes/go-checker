@@ -24,7 +24,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	authProtected.Use(middlewares.MiddlewareJWT())
 	{
 		authProtected.POST("/sites", siteHandler.CreateSite)
-		authProtected.GET("/sites", siteHandler.GetSites)
+		authProtected.GET("/sites", siteHandler.GetAllSitesByUser)
 		authProtected.GET("/sites/status", siteHandler.GetAllSiteStatusByUser)
 		//authProtected.GET("/sites/status/:siteId", siteHandler.GetAllSiteStatusBySiteId)
 		//authProtected.GET("/sites/status/:siteId/:firstDate/:secondDate", siteHandler.GetAllSiteStatusBySiteIdAndDate)
