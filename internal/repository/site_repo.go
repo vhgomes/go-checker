@@ -40,23 +40,31 @@ func (r *SiteRepo) AddSite(url string, interval int, user uint) error {
 
 	return r.DB.Create(&site).Error
 }
-func (r *SiteRepo) UpdateSite(id uint, url string, interval int) error {
-	var site Site
 
-	result := r.DB.First(&site, id)
-	if result.Error != nil {
-		return errors.New("site not found")
+func (r *SiteRepo) UpdateSite(siteId uint, userId uint, url string, interval int) error {
+	var site Site
+	if err := r.DB.Where("id = ? AND user_id = ?", siteId, userId).First(&site).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("site não encontrado ou site não pertence ao user")
+		}
+		return err
+	}
+
+	updates := map[string]interface{}{
+		"updated_at": time.Now(),
 	}
 
 	if url != "" {
-		site.URL = url
+		updates["url"] = url
 	}
+
 	if interval > 0 {
-		site.CheckInterval = interval
+		updates["check_interval"] = interval
 	}
-	site.UpdatedAt = time.Now()
-	return r.DB.Save(&site).Error
+
+	return r.DB.Model(&site).Updates(updates).Error
 }
+
 func (r *SiteRepo) DeleteSite(id uint) error {
 	return r.DB.Delete(&Site{ID: id}).Error
 }
