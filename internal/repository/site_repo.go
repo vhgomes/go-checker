@@ -78,6 +78,7 @@ func (r *SiteRepo) DeleteSite(siteId uint, userId uint) error {
 func (r *SiteRepo) GetSiteById(id uint) (error, error) {
 	return r.DB.First(&Site{ID: id}).Error, nil
 }
+
 func (r *SiteRepo) GetSitesByUserId(userId uint) ([]Site, error) {
 	var sites []Site
 	err := r.DB.Find(&sites).Where("user_id = ?", userId).Error
