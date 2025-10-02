@@ -10,7 +10,7 @@ type SiteStatusHistory struct {
 	ID           uint `gorm:"primaryKey"`
 	SiteID       uint `gorm:"index"`
 	Status       string
-	StatusCode   *int
+	StatusCode   int
 	ResponseTime float64
 	CheckedAt    time.Time
 }
@@ -29,7 +29,7 @@ func (r *SiteStatusRepo) Insert(ctx context.Context, siteID uint, status string,
 	return r.DB.WithContext(ctx).Create(&SiteStatusHistory{
 		SiteID:       siteID,
 		Status:       status,
-		StatusCode:   &statusCode,
+		StatusCode:   statusCode,
 		ResponseTime: responseTime,
 		CheckedAt:    checkedAt,
 	}).Error
