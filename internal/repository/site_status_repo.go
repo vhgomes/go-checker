@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"gorm.io/gorm"
 	"time"
 )
@@ -24,13 +25,13 @@ func NewSiteStatusRepo(db *gorm.DB) *SiteStatusRepo {
 	}
 }
 
-func (nsr *SiteStatusRepo) Insert(siteId uint, status string, statusCode int, responseTime float64, checked time.Time) error {
-	return nsr.DB.Create(&SiteStatusHistory{
-		SiteID:       siteId,
+func (r *SiteStatusRepo) Insert(ctx context.Context, siteID uint, status string, statusCode int, responseTime float64, checkedAt time.Time) error {
+	return r.DB.WithContext(ctx).Create(&SiteStatusHistory{
+		SiteID:       siteID,
 		Status:       status,
 		StatusCode:   &statusCode,
 		ResponseTime: responseTime,
-		CheckedAt:    checked,
+		CheckedAt:    checkedAt,
 	}).Error
 }
 

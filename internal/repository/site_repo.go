@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"gorm.io/gorm"
 	"time"
@@ -91,14 +92,16 @@ func (r *SiteRepo) GetSitesByUserId(userId uint) ([]Site, error) {
 	return sites, err
 }
 
-// Funções que estão fora do escopo atual
-func (r *SiteRepo) UpdateStatus(id uint, status string) error {
-	return r.DB.Model(&Site{}).
+// Funções de Monitoramento dos sites //
+func (r *SiteRepo) UpdateStatus(ctx context.Context, id uint, status string) error {
+	return r.DB.WithContext(ctx).
+		Model(&Site{}).
 		Where("id = ?", id).
 		Update("status", status).Error
 }
-func (r *SiteRepo) GetSites() ([]Site, error) {
+
+func (r *SiteRepo) GetAllSitesToMonitoring(ctx context.Context) ([]Site, error) {
 	var sites []Site
-	err := r.DB.Find(&sites).Error
+	err := r.DB.WithContext(ctx).Find(&sites).Error
 	return sites, err
 }

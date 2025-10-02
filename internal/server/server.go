@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	handlers2 "go-checker/internal/handlers"
 	"go-checker/internal/middlewares"
@@ -9,7 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func SetupRouter(db *gorm.DB) *gin.Engine {
+func SetupRouter(ctx context.Context, db *gorm.DB) *gin.Engine {
 	router := gin.Default()
 
 	siteRepo := repository2.NewSiteRepo(db)
@@ -18,7 +19,7 @@ func SetupRouter(db *gorm.DB) *gin.Engine {
 	userRepo := repository2.NewUserRepo(db)
 	userHandler := handlers2.NewUserHandler(userRepo)
 
-	monitor.StartMonitoring(siteRepo, siteStatusRepo)
+	monitor.StartMonitoring(ctx, siteRepo, siteStatusRepo)
 
 	auth := router.Group("/")
 	auth.Use(middlewares.MiddlewareJWT())
