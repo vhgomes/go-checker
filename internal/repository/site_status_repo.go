@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// Struct sera atualizada para que tenha gorm.Model para deixar mais simples depois
 type SiteStatusHistory struct {
 	ID           uint `gorm:"primaryKey"`
 	SiteID       uint `gorm:"index"`
