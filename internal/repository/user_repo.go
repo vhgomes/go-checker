@@ -56,3 +56,11 @@ func (r *UserRepo) Login(email, password string) (*User, error) {
 
 	return &user, nil
 }
+
+func (r *UserRepo) GetAllUsersId() ([]uint, error) {
+	var usersId []uint
+	if err := r.DB.Find(&usersId).Error; err != nil {
+		return nil, err
+	}
+	return usersId, nil
+}
