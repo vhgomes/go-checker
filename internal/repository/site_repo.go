@@ -17,6 +17,14 @@ type Site struct {
 	UpdatedAt     time.Time
 }
 
+type InfoDashboardUser struct {
+	TotalSites           int64
+	NumberOfSitesOnline  int64
+	NumberOfSitesOffline int64
+	ResponseTimeAvg      float64
+	LastEvents           []SiteStatusHistory
+}
+
 type SiteRepo struct {
 	DB *gorm.DB
 }
@@ -90,6 +98,71 @@ func (r *SiteRepo) GetSitesByUserId(userId uint) ([]Site, error) {
 	var sites []Site
 	err := r.DB.Find(&sites).Where("user_id = ?", userId).Error
 	return sites, err
+}
+
+// Funções para filtros //
+
+func (r *SiteRepo) GetSitesBySiteStatus(siteStatus string, userId uint) ([]Site, error) {
+	var sites []Site
+	err := r.DB.Where("status = ? AND user_id = ?", siteStatus, userId).Find(&sites).Error
+	return sites, err
+}
+
+func (r *SiteRepo) GetAllSiteInfoByUserId(ctx context.Context, userId uint) (InfoDashboardUser, error) {
+	var numberOfOnlineSites int64
+	var numberOfOfflineSites int64
+	var totalSites int64
+	var responseTimeAvg float64
+	var lastEvents []SiteStatusHistory
+
+	if err := r.DB.WithContext(ctx).
+		Model(&Site{}).
+		Where("user_id = ? AND status = ?", userId, "online").
+		Count(&numberOfOnlineSites).Error; err != nil {
+		return InfoDashboardUser{}, err
+	}
+
+	if err := r.DB.WithContext(ctx).
+		Model(&Site{}).
+		Where("user_id = ? AND status = ?", userId, "offline").
+		Count(&numberOfOfflineSites).Error; err != nil {
+		return InfoDashboardUser{}, err
+	}
+
+	if err := r.DB.WithContext(ctx).
+		Model(&Site{}).
+		Where("user_id = ?", userId).
+		Count(&totalSites).Error; err != nil {
+		return InfoDashboardUser{}, err
+	}
+
+	if err := r.DB.WithContext(ctx).
+		Model(&SiteStatusHistory{}).
+		Select("AVG(response_time)").
+		Joins("INNER JOIN sites ON sites.id = site_status_histories.site_id").
+		Where("sites.user_id = ?", userId).
+		Scan(&responseTimeAvg).Error; err != nil {
+		return InfoDashboardUser{}, err
+	}
+
+	if err := r.DB.WithContext(ctx).
+		Joins("INNER JOIN sites ON sites.id = site_status_histories.site_id").
+		Where("sites.user_id = ?", userId).
+		Order("site_status_histories.created_at DESC").
+		Limit(10).
+		Find(&lastEvents).Error; err != nil {
+		return InfoDashboardUser{}, err
+	}
+
+	response := InfoDashboardUser{
+		TotalSites:           totalSites,
+		NumberOfSitesOnline:  numberOfOnlineSites,
+		NumberOfSitesOffline: numberOfOfflineSites,
+		ResponseTimeAvg:      responseTimeAvg,
+		LastEvents:           lastEvents,
+	}
+
+	return response, nil
 }
 
 // Funções de Monitoramento dos sites //
