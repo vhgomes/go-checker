@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -57,10 +58,12 @@ func (r *UserRepo) Login(email, password string) (*User, error) {
 	return &user, nil
 }
 
-func (r *UserRepo) GetAllUsersId() ([]uint, error) {
-	var usersId []uint
-	if err := r.DB.Find(&usersId).Error; err != nil {
+func (r *UserRepo) GetAllUsersId(ctx context.Context) ([]uint, error) {
+	var ids []uint
+	if err := r.DB.WithContext(ctx).
+		Model(&User{}).
+		Pluck("id", &ids).Error; err != nil {
 		return nil, err
 	}
-	return usersId, nil
+	return ids, nil
 }

@@ -39,7 +39,7 @@ func (d DashboardCronJob) Schedule() string {
 func (d DashboardCronJob) Run(ctx context.Context) error {
 	start := time.Now()
 
-	users, err := d.userRepo.GetAllUsersId()
+	users, err := d.userRepo.GetAllUsersId(ctx)
 	if err != nil {
 		log.Println("error to get all the users")
 		return err
