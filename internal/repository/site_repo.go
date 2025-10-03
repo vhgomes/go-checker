@@ -145,10 +145,11 @@ func (r *SiteRepo) GetAllSiteInfoByUserId(ctx context.Context, userId uint) (Inf
 		return InfoDashboardUser{}, err
 	}
 
+	// está ordenando por checked_at porém apos a modificação dos campos sera colocado created_at
 	if err := r.DB.WithContext(ctx).
 		Joins("INNER JOIN sites ON sites.id = site_status_histories.site_id").
 		Where("sites.user_id = ?", userId).
-		Order("site_status_histories.created_at DESC").
+		Order("site_status_histories.checked_at DESC").
 		Limit(10).
 		Find(&lastEvents).Error; err != nil {
 		return InfoDashboardUser{}, err
