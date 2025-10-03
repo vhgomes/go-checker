@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	handlers2 "go-checker/internal/handlers"
 	"go-checker/internal/middlewares"
 	"go-checker/internal/monitor"
@@ -10,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func SetupRouter(ctx context.Context, db *gorm.DB) *gin.Engine {
+func SetupRouter(ctx context.Context, db *gorm.DB, redis *redis.Client) *gin.Engine {
 	router := gin.Default()
 
 	siteRepo := repository2.NewSiteRepo(db)

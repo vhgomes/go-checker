@@ -24,7 +24,9 @@ func main() {
 	}()
 
 	db := config.InitDB()
-	router := server.SetupRouter(ctx, db)
+	redis := config.InitRedis()
+
+	router := server.SetupRouter(ctx, db, redis)
 
 	log.Println("Server Running on :8080")
 	if err := router.Run(":8080"); err != nil {
