@@ -13,16 +13,17 @@ type DashboardCronJob struct {
 	name     string
 	schedule string
 	siteRepo *repository.SiteRepo
+	userRepo *repository.UserRepo
 	userID   uint
 	redis    *redis.Client
 }
 
-func NewDashboardCronJob(siteRepo *repository.SiteRepo, userID uint, schedule string, redisClient *redis.Client) *DashboardCronJob {
+func NewDashboardCronJob(siteRepo *repository.SiteRepo, userRepo *repository.UserRepo, redisClient *redis.Client, schedule string) *DashboardCronJob {
 	return &DashboardCronJob{
 		name:     "DashboardCronJob",
 		schedule: schedule,
 		siteRepo: siteRepo,
-		userID:   userID,
+		userRepo: userRepo,
 		redis:    redisClient,
 	}
 }
@@ -38,26 +39,42 @@ func (d DashboardCronJob) Schedule() string {
 func (d DashboardCronJob) Run(ctx context.Context) error {
 	start := time.Now()
 
-	info, err := d.siteRepo.GetAllSiteInfoByUserId(ctx, d.userID)
+	users, err := d.userRepo.GetAllUsersId()
 	if err != nil {
-		log.Printf("error to get the dashboard data from: %d: %v", d.userID, err)
+		log.Println("error to get all the users")
 		return err
 	}
 
-	data, err := json.Marshal(info)
-	if err != nil {
-		log.Printf("error to serialize the data from:  %d: %v", d.userID, err)
-		return err
+	for _, user := range users {
+		select {
+		case <-ctx.Done():
+			log.Println("execution canceled by context!")
+			return ctx.Err()
+		default:
+			info, err := d.siteRepo.GetAllSiteInfoByUserId(ctx, user)
+			if err != nil {
+				log.Printf("error from compute the dashboard of the user: %d: %v", user, err)
+				continue
+			}
+
+			data, err := json.Marshal(info)
+			if err != nil {
+				log.Printf("error to serialize infos by user: %d: %v", user, err)
+				continue
+			}
+
+			key := "dashboard:user:" + string(rune(user))
+
+			err = d.redis.Set(ctx, key, data, 5*time.Minute).Err()
+			if err != nil {
+				log.Printf("error on save on redis of user: %d: %v", user, err)
+				continue
+			}
+
+			log.Printf("user dashboard %d updated on redis", user)
+		}
 	}
 
-	key := "dashboard:user:" + string(rune(d.userID))
-
-	err = d.redis.Set(ctx, key, data, 5*time.Minute).Err()
-	if err != nil {
-		log.Printf("error to save on redis to: %d: %v", d.userID, err)
-		return err
-	}
-
-	log.Printf("user dashboard %d updated on redis (time: %s)", d.userID, time.Since(start))
+	log.Printf("AllUsersDashboardJob ended in %s", time.Since(start))
 	return nil
 }
