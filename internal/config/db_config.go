@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+	"github.com/redis/go-redis/v9"
 	"go-checker/internal/repository"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -13,20 +15,21 @@ func InitDB() *gorm.DB {
 		panic("failed to connect database")
 	}
 
-	err = db.AutoMigrate(&repository.Site{})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = db.AutoMigrate(&repository.SiteStatusHistory{})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = db.AutoMigrate(&repository.User{})
+	err = db.AutoMigrate(&repository.Site{}, &repository.User{}, &repository.SiteStatusHistory{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	return db
+}
+
+func InitRedis() *redis.Client {
+	client := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+
+	fmt.Println("Connected to Redis!")
+	return client
 }
