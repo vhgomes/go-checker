@@ -16,6 +16,16 @@ type SiteStatusHistory struct {
 	CheckedAt    time.Time
 }
 
+// Struct generica para que eu possa fazer as funções de paginação com qualquer tipo de entidade
+// provavelmente ser mais gereralizada ainda depois para usar em outros repositorios
+type PaginatedResult[T any] struct {
+	Data       []T   `json:"data"`
+	Total      int64 `json:"total"`
+	Page       int   `json:"page"`
+	PageSize   int   `json:"page_size"`
+	TotalPages int   `json:"total_pages"`
+}
+
 type SiteStatusRepo struct {
 	DB *gorm.DB
 }
@@ -36,6 +46,7 @@ func (r *SiteStatusRepo) Insert(ctx context.Context, siteID uint, status string,
 	}).Error
 }
 
+// Funções de Filtragens
 func (nsr *SiteStatusRepo) GetAllSiteStatusBySiteIdPaginated(siteId uint, page, pageSize int) ([]SiteStatusHistory, error) {
 	var status []SiteStatusHistory
 
