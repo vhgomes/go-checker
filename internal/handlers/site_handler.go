@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"github.com/gin-gonic/gin"
 	"go-checker/internal/repository"
 	"net/http"
@@ -10,10 +11,11 @@ import (
 type SiteHandler struct {
 	siteRepo       repository.SiteRepo
 	siteStatusRepo repository.SiteStatusRepo
+	ctx            context.Context
 }
 
-func NewSiteHandler(siteRepo *repository.SiteRepo, siteStatusRepo *repository.SiteStatusRepo) *SiteHandler {
-	return &SiteHandler{siteRepo: *siteRepo, siteStatusRepo: *siteStatusRepo}
+func NewSiteHandler(siteRepo *repository.SiteRepo, siteStatusRepo *repository.SiteStatusRepo, ctx context.Context) *SiteHandler {
+	return &SiteHandler{siteRepo: *siteRepo, siteStatusRepo: *siteStatusRepo, ctx: ctx}
 }
 
 func (h *SiteHandler) CreateSite(c *gin.Context) {
@@ -125,4 +127,17 @@ func (h *SiteHandler) GetAllSitesByUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": sites})
+}
+
+func (h *SiteHandler) GetDashboardByUser(c *gin.Context) {
+	userAny, _ := c.Get("user_id")
+	userID := uint(userAny.(float64))
+
+	dashboard, err := h.siteRepo.GetAllSiteInfoByUserId(h.ctx, userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "falha ao juntar o dashboard"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": dashboard})
 }

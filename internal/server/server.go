@@ -19,7 +19,7 @@ func SetupRouter(ctx context.Context, db *gorm.DB, redis *redis.Client) *gin.Eng
 	siteStatusRepo := repository2.NewSiteStatusRepo(db)
 	userRepo := repository2.NewUserRepo(db)
 
-	siteHandler := handlers2.NewSiteHandler(siteRepo, siteStatusRepo)
+	siteHandler := handlers2.NewSiteHandler(siteRepo, siteStatusRepo, ctx)
 	userHandler := handlers2.NewUserHandler(userRepo)
 
 	monitor.StartMonitoring(ctx, siteRepo, siteStatusRepo)
