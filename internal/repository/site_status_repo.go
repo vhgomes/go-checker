@@ -71,46 +71,61 @@ func (r *SiteStatusRepo) Insert(ctx context.Context, siteID uint, status string,
 }
 
 // Funções de Filtragens
-func (nsr *SiteStatusRepo) GetAllSiteStatusBySiteIdPaginated(siteId uint, page, pageSize int) (PaginatedResult[SiteStatusHistory], error) {
+func (nsr *SiteStatusRepo) GetAllSiteStatusBySiteIdPaginated(userId, siteId uint, page, pageSize int) (PaginatedResult[SiteStatusHistory], error) {
 	var status []SiteStatusHistory
 	query := nsr.DB.Model(&SiteStatusHistory{}).
-		Where("site_id = ?", siteId).
-		Order("checked_at desc")
+		Joins("JOIN sites ON sites.id = site_status_histories.site_id").
+		Where("site_status_histories.site_id = ? AND sites.user_id = ?", siteId, userId).
+		Order("site_status_histories.checked_at DESC")
 
 	return PaginateQuery(query, page, pageSize, &status)
 }
 
-func (nsr *SiteStatusRepo) GetAllSiteStatusBySiteIdAndDatePaginated(siteId uint, firstDate, secondDate time.Time, page, pageSize int) (PaginatedResult[SiteStatusHistory], error) {
+func (nsr *SiteStatusRepo) GetAllSiteStatusBySiteIdAndDatePaginated(userId, siteId uint, firstDate, secondDate time.Time, page, pageSize int) (PaginatedResult[SiteStatusHistory], error) {
 	var status []SiteStatusHistory
 	query := nsr.DB.Model(&SiteStatusHistory{}).
-		Where("site_id = ? AND checked_at BETWEEN ? AND ?", siteId, firstDate, secondDate).
-		Order("checked_at desc")
+		Joins("JOIN sites ON sites.id = site_status_histories.site_id").
+		Where("site_status_histories.site_id = ? AND sites.user_id = ? AND site_status_histories.checked_at BETWEEN ? AND ?",
+			siteId, userId, firstDate, secondDate).
+		Order("site_status_histories.checked_at DESC")
 
 	return PaginateQuery(query, page, pageSize, &status)
 }
 
-func (nsr *SiteStatusRepo) GetAllSiteStatusByStatusPaginated(siteId uint, siteStatus string, page, pageSize int) (PaginatedResult[SiteStatusHistory], error) {
+func (nsr *SiteStatusRepo) GetAllSiteStatusByStatusPaginated(userId, siteId uint, siteStatus string, page, pageSize int) (PaginatedResult[SiteStatusHistory], error) {
 	var status []SiteStatusHistory
 	query := nsr.DB.Model(&SiteStatusHistory{}).
-		Where("site_id = ? AND site_status = ?", siteId, siteStatus).
-		Order("checked_at desc")
+		Joins("JOIN sites ON sites.id = site_status_histories.site_id").
+		Where("site_status_histories.site_id = ? AND sites.user_id = ? AND site_status_histories.status = ?",
+			siteId, userId, siteStatus).
+		Order("site_status_histories.checked_at DESC")
 
 	return PaginateQuery(query, page, pageSize, &status)
 }
 
 // Essas duas funções eu posso generalizar para só uma porém analisando superficialmente eu acho melhor ficar separado
-func (nsr *SiteStatusRepo) GetLastSiteStatus(siteId uint) (*SiteStatusHistory, error) {
+func (nsr *SiteStatusRepo) GetLastSiteStatus(userId, siteId uint) (*SiteStatusHistory, error) {
 	var status SiteStatusHistory
-	err := nsr.DB.Where("site_id = ?", siteId).Order("checked_at desc").First(&status).Error
+	err := nsr.DB.Model(&SiteStatusHistory{}).
+		Joins("JOIN sites ON sites.id = site_status_histories.site_id").
+		Where("site_status_histories.site_id = ? AND sites.user_id = ?", siteId, userId).
+		Order("site_status_histories.checked_at DESC").
+		First(&status).Error
+
 	if err != nil {
 		return nil, err
 	}
 	return &status, nil
 }
 
-func (nsr *SiteStatusRepo) GetFirstSiteStatus(siteId uint) (*SiteStatusHistory, error) {
+func (nsr *SiteStatusRepo) GetFirstSiteStatus(userId, siteId uint) (*SiteStatusHistory, error) {
 	var status SiteStatusHistory
-	err := nsr.DB.Where("site_id = ?", siteId).Order("checked_at asc").First(&status).Error
+	err := nsr.DB.Model(&SiteStatusHistory{}).
+		Joins("JOIN sites ON sites.id = site_status_histories.site_id").
+		Where("site_status_histories.site_id = ? AND sites.user_id = ?", siteId, userId).
+		Order("site_status_histories.checked_at ASC").
+		First(&status).Error
+
 	if err != nil {
 		return nil, err
 	}
