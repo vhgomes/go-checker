@@ -26,6 +26,29 @@ type PaginatedResult[T any] struct {
 	TotalPages int   `json:"total_pages"`
 }
 
+// Esse aqui é um outro helper para que não repita codigo toda hora, eu acredito que seja generico e capaz de poder usar
+// em outras estruturas também.
+func PaginateQuery[T any](db *gorm.DB, page, pageSize int, dest *[]T) (PaginatedResult[T], error) {
+	var total int64
+	db.Count(&total)
+
+	offset := (page - 1) * pageSize
+	err := db.Offset(offset).Limit(pageSize).Find(dest).Error
+	if err != nil {
+		return PaginatedResult[T]{}, err
+	}
+
+	totalPages := int((total + int64(pageSize) - 1) / int64(pageSize))
+
+	return PaginatedResult[T]{
+		Data:       *dest,
+		Total:      total,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+	}, nil
+}
+
 type SiteStatusRepo struct {
 	DB *gorm.DB
 }
@@ -47,16 +70,13 @@ func (r *SiteStatusRepo) Insert(ctx context.Context, siteID uint, status string,
 }
 
 // Funções de Filtragens
-func (nsr *SiteStatusRepo) GetAllSiteStatusBySiteIdPaginated(siteId uint, page, pageSize int) ([]SiteStatusHistory, error) {
+func (nsr *SiteStatusRepo) GetAllSiteStatusBySiteIdPaginated(siteId uint, page, pageSize int) (PaginatedResult[SiteStatusHistory], error) {
 	var status []SiteStatusHistory
+	query := nsr.DB.Model(&SiteStatusHistory{}).
+		Where("site_id = ?", siteId).
+		Order("checked_at desc")
 
-	offset := (page - 1) * pageSize
-
-	err := nsr.DB.Where("site_id = ?", siteId).Order("checked_at desc").Limit(pageSize).Offset(offset).Find(&status).Error
-	if err != nil {
-		return nil, err
-	}
-	return status, nil
+	return PaginateQuery(query, page, pageSize, &status)
 }
 
 func (nsr *SiteStatusRepo) GetAllSiteStatusBySiteIdAndDate(siteId uint, firstDate, secondDate time.Time) ([]SiteStatusHistory, error) {
