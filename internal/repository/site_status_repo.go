@@ -49,6 +49,7 @@ func PaginateQuery[T any](db *gorm.DB, page, pageSize int, dest *[]T) (Paginated
 	}, nil
 }
 
+// ===================================================================================================//
 type SiteStatusRepo struct {
 	DB *gorm.DB
 }
@@ -79,22 +80,28 @@ func (nsr *SiteStatusRepo) GetAllSiteStatusBySiteIdPaginated(siteId uint, page, 
 	return PaginateQuery(query, page, pageSize, &status)
 }
 
-func (nsr *SiteStatusRepo) GetAllSiteStatusBySiteIdAndDate(siteId uint, firstDate, secondDate time.Time) ([]SiteStatusHistory, error) {
+func (nsr *SiteStatusRepo) GetAllSiteStatusBySiteIdAndDatePaginated(siteId uint, firstDate, secondDate time.Time, page, pageSize int) (PaginatedResult[SiteStatusHistory], error) {
 	var status []SiteStatusHistory
-
-	err := nsr.DB.
+	query := nsr.DB.Model(&SiteStatusHistory{}).
 		Where("site_id = ? AND checked_at BETWEEN ? AND ?", siteId, firstDate, secondDate).
-		Find(&status).Error
-	if err != nil {
-		return nil, err
-	}
+		Order("checked_at desc")
 
-	return status, nil
+	return PaginateQuery(query, page, pageSize, &status)
 }
 
+func (nsr *SiteStatusRepo) GetAllSiteStatusByStatusPaginated(siteId uint, siteStatus string, page, pageSize int) (PaginatedResult[SiteStatusHistory], error) {
+	var status []SiteStatusHistory
+	query := nsr.DB.Model(&SiteStatusHistory{}).
+		Where("site_id = ? AND site_status = ?", siteId, siteStatus).
+		Order("checked_at desc")
+
+	return PaginateQuery(query, page, pageSize, &status)
+}
+
+// Essas duas funções eu posso generalizar para só uma porém analisando superficialmente eu acho melhor ficar separado
 func (nsr *SiteStatusRepo) GetLastSiteStatus(siteId uint) (*SiteStatusHistory, error) {
 	var status SiteStatusHistory
-	err := nsr.DB.Where("site_id = ?", siteId).Last(&status).Error
+	err := nsr.DB.Where("site_id = ?", siteId).Order("checked_at desc").First(&status).Error
 	if err != nil {
 		return nil, err
 	}
@@ -103,18 +110,9 @@ func (nsr *SiteStatusRepo) GetLastSiteStatus(siteId uint) (*SiteStatusHistory, e
 
 func (nsr *SiteStatusRepo) GetFirstSiteStatus(siteId uint) (*SiteStatusHistory, error) {
 	var status SiteStatusHistory
-	err := nsr.DB.Where("site_id = ?", siteId).First(&status).Error
+	err := nsr.DB.Where("site_id = ?", siteId).Order("checked_at asc").First(&status).Error
 	if err != nil {
 		return nil, err
 	}
 	return &status, nil
-}
-
-func (nsr *SiteStatusRepo) GetAllSiteStatusByStatus(siteId uint, siteStatus string) ([]SiteStatusHistory, error) {
-	var status []SiteStatusHistory
-	err := nsr.DB.Where("site_id = ? AND site_status = ?", siteId, siteStatus).Find(&status).Error
-	if err != nil {
-		return nil, err
-	}
-	return status, err
 }
