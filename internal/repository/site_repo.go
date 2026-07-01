@@ -3,8 +3,9 @@ package repository
 import (
 	"context"
 	"errors"
-	"gorm.io/gorm"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Site struct {
@@ -33,7 +34,7 @@ func NewSiteRepo(db *gorm.DB) *SiteRepo {
 	return &SiteRepo{DB: db}
 }
 
-func (r *SiteRepo) AddSite(url string, interval int, user uint) error {
+func (r *SiteRepo) AddSite(url string, interval int, user uint) (*Site, error) {
 	if interval <= 0 {
 		interval = 60
 	}
@@ -47,7 +48,11 @@ func (r *SiteRepo) AddSite(url string, interval int, user uint) error {
 		UpdatedAt:     time.Now(),
 	}
 
-	return r.DB.Create(&site).Error
+	if err := r.DB.Create(&site).Error; err != nil {
+		return nil, err
+	}
+
+	return &site, nil
 }
 
 func (r *SiteRepo) UpdateSite(siteId uint, userId uint, url string, interval int) error {
@@ -96,7 +101,7 @@ func (r *SiteRepo) GetSiteById(siteId uint, userId uint) (*Site, error) {
 
 func (r *SiteRepo) GetSitesByUserId(userId uint) ([]Site, error) {
 	var sites []Site
-	err := r.DB.Find(&sites).Where("user_id = ?", userId).Error
+	err := r.DB.Where("user_id = ?", userId).Find(&sites).Error
 	return sites, err
 }
 
