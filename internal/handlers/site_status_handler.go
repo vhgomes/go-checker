@@ -1,11 +1,13 @@
 package handlers
 
 import (
-	"github.com/gin-gonic/gin"
+	"go-checker/internal/middlewares"
 	"go-checker/internal/repository"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type SiteStatusHandler struct {
@@ -17,16 +19,12 @@ func NewSiteStatusHandler(repo *repository.SiteStatusRepo) *SiteStatusHandler {
 }
 
 func (h *SiteStatusHandler) GetAllSiteStatusBySiteIdPaginated(c *gin.Context) {
-	userAny, exists := c.Get("user_id")
-
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "não autorizado"})
+	userID, ok := middlewares.GetUserID(c)
+	if !ok {
 		return
 	}
 
-	userID := uint(userAny.(float64))
-
-	siteId, _ := strconv.ParseUint(c.Param("siteId"), 10, 64)
+	siteId, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
 
@@ -40,16 +38,12 @@ func (h *SiteStatusHandler) GetAllSiteStatusBySiteIdPaginated(c *gin.Context) {
 }
 
 func (h *SiteStatusHandler) GetAllSiteStatusByDatePaginated(c *gin.Context) {
-	userAny, exists := c.Get("user_id")
-
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "não autorizado"})
+	userID, ok := middlewares.GetUserID(c)
+	if !ok {
 		return
 	}
 
-	userID := uint(userAny.(float64))
-
-	siteId, _ := strconv.ParseUint(c.Param("siteId"), 10, 64)
+	siteId, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
 	from := c.Query("from")
@@ -76,16 +70,12 @@ func (h *SiteStatusHandler) GetAllSiteStatusByDatePaginated(c *gin.Context) {
 }
 
 func (h *SiteStatusHandler) GetAllSiteStatusByStatusPaginated(c *gin.Context) {
-	userAny, exists := c.Get("user_id")
-
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "não autorizado"})
+	userID, ok := middlewares.GetUserID(c)
+	if !ok {
 		return
 	}
 
-	userID := uint(userAny.(float64))
-
-	siteId, _ := strconv.ParseUint(c.Param("siteId"), 10, 64)
+	siteId, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
 	status := c.Query("status")
@@ -100,18 +90,14 @@ func (h *SiteStatusHandler) GetAllSiteStatusByStatusPaginated(c *gin.Context) {
 }
 
 func (h *SiteStatusHandler) GetLastSiteStatus(c *gin.Context) {
-	userAny, exists := c.Get("user_id")
-
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "não autorizado"})
+	userID, ok := middlewares.GetUserID(c)
+	if !ok {
 		return
 	}
 
-	userID := uint(userAny.(float64))
+	siteId, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 
-	siteId, _ := strconv.ParseUint(c.Param("siteId"), 10, 64)
-
-	result, err := h.Repo.GetLastSiteStatus(uint(userID), uint(siteId))
+	result, err := h.Repo.GetLastSiteStatus(userID, uint(siteId))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -121,16 +107,12 @@ func (h *SiteStatusHandler) GetLastSiteStatus(c *gin.Context) {
 }
 
 func (h *SiteStatusHandler) GetFirstSiteStatus(c *gin.Context) {
-	userAny, exists := c.Get("user_id")
-
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "não autorizado"})
+	userID, ok := middlewares.GetUserID(c)
+	if !ok {
 		return
 	}
 
-	userID := uint(userAny.(float64))
-
-	siteId, _ := strconv.ParseUint(c.Param("siteId"), 10, 64)
+	siteId, _ := strconv.ParseUint(c.Param("id"), 10, 64)
 
 	result, err := h.Repo.GetFirstSiteStatus(userID, uint(siteId))
 	if err != nil {

@@ -39,11 +39,12 @@ func MiddlewareJWT() gin.HandlerFunc {
 		}
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			c.Set("user_id", claims["user_id"])
+			if rawID, ok := claims["user_id"].(float64); ok {
+				c.Set("user_id", uint(rawID))
+			}
 			c.Set("email", claims["email"])
 		}
 
-		// Continua a request
 		c.Next()
 	}
 }

@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"go-checker/internal/middlewares"
 	"go-checker/internal/monitor"
 	"go-checker/internal/repository"
 	"net/http"
@@ -22,19 +23,15 @@ func NewSiteHandler(siteRepo *repository.SiteRepo, siteStatusRepo *repository.Si
 }
 
 func (h *SiteHandler) CreateSite(c *gin.Context) {
+	userID, ok := middlewares.GetUserID(c)
+	if !ok {
+		return
+	}
+
 	var body struct {
 		URL           string `json:"url"`
 		CheckInterval int    `json:"check_interval"`
 	}
-
-	userAny, exists := c.Get("user_id")
-
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "não autorizado"})
-		return
-	}
-
-	userID := uint(userAny.(float64))
 
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "corpo da requisição invalido"})
@@ -55,14 +52,15 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 func (h *SiteHandler) DeleteSite(c *gin.Context) {
 	idParam := c.Param("id")
 	siteID, err := strconv.ParseUint(idParam, 10, 64)
-
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id do site invalido"})
 		return
 	}
 
-	userAny, _ := c.Get("user_id")
-	userID := uint(userAny.(float64))
+	userID, ok := middlewares.GetUserID(c)
+	if !ok {
+		return
+	}
 
 	if err := h.siteRepo.DeleteSite(uint(siteID), userID); err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -75,7 +73,6 @@ func (h *SiteHandler) DeleteSite(c *gin.Context) {
 func (h *SiteHandler) UpdateSite(c *gin.Context) {
 	idParam := c.Param("id")
 	siteID, err := strconv.ParseUint(idParam, 10, 64)
-
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "id do site invalido"})
 		return
@@ -91,8 +88,10 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 		return
 	}
 
-	userAny, _ := c.Get("user_id")
-	userID := uint(userAny.(float64))
+	userID, ok := middlewares.GetUserID(c)
+	if !ok {
+		return
+	}
 
 	if err := h.siteRepo.UpdateSite(uint(siteID), userID, body.URL, body.CheckInterval); err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -110,8 +109,10 @@ func (h *SiteHandler) GetSiteById(c *gin.Context) {
 		return
 	}
 
-	userAny, _ := c.Get("user_id")
-	userID := uint(userAny.(float64))
+	userID, ok := middlewares.GetUserID(c)
+	if !ok {
+		return
+	}
 
 	site, err := h.siteRepo.GetSiteById(uint(siteID), userID)
 	if err != nil {
@@ -123,8 +124,10 @@ func (h *SiteHandler) GetSiteById(c *gin.Context) {
 }
 
 func (h *SiteHandler) GetAllSitesByUser(c *gin.Context) {
-	userAny, _ := c.Get("user_id")
-	userID := uint(userAny.(float64))
+	userID, ok := middlewares.GetUserID(c)
+	if !ok {
+		return
+	}
 
 	sites, err := h.siteRepo.GetSitesByUserId(userID)
 	if err != nil {
@@ -136,8 +139,10 @@ func (h *SiteHandler) GetAllSitesByUser(c *gin.Context) {
 }
 
 func (h *SiteHandler) GetDashboardByUser(c *gin.Context) {
-	userAny, _ := c.Get("user_id")
-	userID := uint(userAny.(float64))
+	userID, ok := middlewares.GetUserID(c)
+	if !ok {
+		return
+	}
 
 	dashboard, err := h.siteRepo.GetAllSiteInfoByUserId(h.ctx, userID)
 	if err != nil {

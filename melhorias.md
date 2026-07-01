@@ -30,7 +30,7 @@ Plano de ação para elevar o projeto a nível sênior. Ordem sugerida: resolva 
 
 ## 🟠 IMPORTANTE — Robustez, segurança secundária, consistência com o stack
 
-- [ ] **Type assertion sem verificação repetida em ~10 handlers**
+- [x] **Type assertion sem verificação repetida em ~10 handlers**
   `userAny, _ := c.Get("user_id"); userID := uint(userAny.(float64))` — panic se o tipo vier diferente.
   **Fix:** middleware injeta `userID uint` já validado no contexto; handlers usam helper único (`GetUserID(c)`).
 
