@@ -1,3 +1,20 @@
 package config
 
-var JwtSecret = []byte("minha_chave_super_secreta") // ideal: usar variável de ambiente
+import (
+	"log"
+	"os"
+)
+
+var JwtSecret []byte
+
+func init() {
+	jwtEnv := os.Getenv("JWT_SECRET")
+	if jwtEnv != "" {
+		JwtSecret = []byte(jwtEnv)
+	}
+
+	if JwtSecret == nil {
+		log.Fatal("erro ao inicializar JwtSecret")
+	}
+
+}
