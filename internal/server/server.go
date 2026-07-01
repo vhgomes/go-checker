@@ -2,13 +2,14 @@ package server
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
-	"github.com/redis/go-redis/v9"
 	"go-checker/internal/cronjobs"
 	handlers2 "go-checker/internal/handlers"
 	"go-checker/internal/middlewares"
 	"go-checker/internal/monitor"
 	repository2 "go-checker/internal/repository"
+
+	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
@@ -20,14 +21,16 @@ func SetupRouter(ctx context.Context, db *gorm.DB, redis *redis.Client) *gin.Eng
 	siteStatusRepo := repository2.NewSiteStatusRepo(db)
 	userRepo := repository2.NewUserRepo(db)
 
+	// monitor manager: inicia sites existentes e novos são colocados
+	monitorManager := monitor.NewMonitorManager(ctx, siteRepo, siteStatusRepo)
+	monitorManager.Start()
+
 	// handlers
-	siteHandler := handlers2.NewSiteHandler(siteRepo, siteStatusRepo, ctx)
+	siteHandler := handlers2.NewSiteHandler(siteRepo, siteStatusRepo, monitorManager, ctx)
 	userHandler := handlers2.NewUserHandler(userRepo)
 	siteStatusHandler := handlers2.NewSiteStatusHandler(siteStatusRepo)
 
 	// cronjobs
-	monitor.StartMonitoring(ctx, siteRepo, siteStatusRepo)
-
 	cronManager := cronjobs.NewJobManager(ctx)
 	dashboardCronJob := cronjobs.NewDashboardCronJob(siteRepo, userRepo, redis, "*/30 * * * * *") // a cada 30s
 	cronManager.RegisterJob(dashboardCronJob)
