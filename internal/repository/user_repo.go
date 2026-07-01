@@ -23,10 +23,13 @@ func NewUserRepo(db *gorm.DB) *UserRepo {
 	return &UserRepo{DB: db}
 }
 
-func (r *UserRepo) CreateUser(email, password, name string) error {
-	var existing User
-	if err := r.DB.Where("email = ?", email).First(&existing).Error; err == nil {
-		return errors.New("email já cadastrado")
+func (r *UserRepo) CreateUser(ctx context.Context, email, password, name string) error {
+	err := r.DB.WithContext(ctx).Where("email = ?", email).First(&User{}).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return errors.New("email já cadastrado")
+		}
+		return err
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -40,12 +43,12 @@ func (r *UserRepo) CreateUser(email, password, name string) error {
 		Name:     name,
 	}
 
-	return r.DB.Create(&user).Error
+	return r.DB.WithContext(ctx).Create(&user).Error
 }
 
-func (r *UserRepo) Login(email, password string) (*User, error) {
+func (r *UserRepo) Login(ctx context.Context, email, password string) (*User, error) {
 	var user User
-	if err := r.DB.Where("email = ?", email).First(&user).Error; err != nil {
+	if err := r.DB.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("credenciais inválidas ")
 		}

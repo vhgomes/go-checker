@@ -1,10 +1,11 @@
 package handlers
 
 import (
-	"github.com/gin-gonic/gin"
 	"go-checker/internal/repository"
 	"go-checker/internal/utils"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type UserHandler struct {
@@ -27,7 +28,7 @@ func (h *UserHandler) RegisterUser(c *gin.Context) {
 		return
 	}
 
-	if err := h.userRepo.CreateUser(body.Email, body.Password, body.Name); err != nil {
+	if err := h.userRepo.CreateUser(c.Request.Context(), body.Email, body.Password, body.Name); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
@@ -46,7 +47,7 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userRepo.Login(body.Email, body.Password)
+	user, err := h.userRepo.Login(c.Request.Context(), body.Email, body.Password)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
