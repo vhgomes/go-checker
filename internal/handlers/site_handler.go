@@ -2,20 +2,23 @@ package handlers
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
+	"go-checker/internal/monitor"
 	"go-checker/internal/repository"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 type SiteHandler struct {
 	siteRepo       repository.SiteRepo
 	siteStatusRepo repository.SiteStatusRepo
+	monitorManager *monitor.MonitorManager
 	ctx            context.Context
 }
 
-func NewSiteHandler(siteRepo *repository.SiteRepo, siteStatusRepo *repository.SiteStatusRepo, ctx context.Context) *SiteHandler {
-	return &SiteHandler{siteRepo: *siteRepo, siteStatusRepo: *siteStatusRepo, ctx: ctx}
+func NewSiteHandler(siteRepo *repository.SiteRepo, siteStatusRepo *repository.SiteStatusRepo, monitorManager *monitor.MonitorManager, ctx context.Context) *SiteHandler {
+	return &SiteHandler{siteRepo: *siteRepo, siteStatusRepo: *siteStatusRepo, monitorManager: monitorManager, ctx: ctx}
 }
 
 func (h *SiteHandler) CreateSite(c *gin.Context) {
@@ -38,10 +41,13 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		return
 	}
 
-	if err := h.siteRepo.AddSite(body.URL, body.CheckInterval, userID); err != nil {
+	newSite, err := h.siteRepo.AddSite(body.URL, body.CheckInterval, userID)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "falha ao criar o site"})
 		return
 	}
+
+	h.monitorManager.Register(*newSite)
 
 	c.JSON(http.StatusOK, gin.H{"message": "site criado com sucesso"})
 }
