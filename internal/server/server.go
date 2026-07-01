@@ -46,6 +46,8 @@ func SetupRouter(ctx context.Context, db *gorm.DB, redis *redis.Client) *gin.Eng
 		auth.PUT("/sites/:id", siteHandler.UpdateSite)
 		auth.DELETE("/sites/:id", siteHandler.DeleteSite)
 
+		auth.GET("/dashboard", siteHandler.GetDashboardByUser)
+
 		// rotas filtros
 		status := auth.Group("/sites/:id/status")
 		{
