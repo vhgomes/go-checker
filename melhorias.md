@@ -38,11 +38,11 @@ Plano de ação para elevar o projeto a nível sênior. Ordem sugerida: resolva 
   Retorna `"usuário não encontrado"` vs `"senha incorreta"` como erros distintos, propagados ao cliente.
   **Fix:** mensagem genérica única ("credenciais inválidas") nos dois casos; detalhe só em log.
 
-- [ ] **`context.Context` guardado como campo de struct** (`SiteHandler.ctx`)
+- [x] **`context.Context` guardado como campo de struct** (`SiteHandler.ctx`)
   Vive pra sempre em vez de vir de `c.Request.Context()` a cada request — cancelamento por request não se propaga.
   **Fix:** usar `c.Request.Context()` dentro de cada handler.
 
-- [ ] **Repos sem `context.Context` na maioria dos métodos**
+- [x] **Repos sem `context.Context` na maioria dos métodos**
   `AddSite`, `UpdateSite`, `DeleteSite`, `GetSiteById`, `GetSitesByUserId` e todo `SiteStatusRepo` não recebem/propagam `ctx`.
   **Fix:** todo método de repo que toca o banco recebe `ctx` como primeiro parâmetro e usa `.WithContext(ctx)`.
 
@@ -61,8 +61,8 @@ Plano de ação para elevar o projeto a nível sênior. Ordem sugerida: resolva 
 - [ ] **Sem logging estruturado** — trocar `log.Println`/`log.Printf` por Zap com campos (`user_id`, `site_id`, `err`).
 - [ ] **Sem testes** — zero arquivos `_test.go`. Priorizar `site_repo_test.go` com testcontainers e testes de handler com `httptest` para fluxos de auth/ownership.
 - [ ] **Configuração hardcoded** — `localhost:6379`, `test.db`, porta `:8080` fixos no código. Criar `internal/config` carregado de env vars.
-- [ ] **`panic` em `InitDB`** fora de `init()`/`main()` — trocar por `(*gorm.DB, error)` retornado e `log.Fatal` explícito em `main()`.
 - [ ] **Naming de import colidindo com pacote** (`handlers2`, `repository2` em `server.go`) — renomear variável `redis` para `redisClient` e remover os aliases forçados.
+- [ ] **`panic` em `InitDB`** fora de `init()`/`main()` — trocar por `(*gorm.DB, error)` retornado e `log.Fatal` explícito em `main()`.
 - [ ] **Sem health check nem Dockerfile da aplicação** — adicionar `Dockerfile` multi-stage com Go pinado (`golang:1.25-alpine3.19`, nunca `latest`) e endpoints `/health`/`/ready`.
 - [ ] **Rota `GetDashboardByUser` órfã** — handler existe mas não está registrado em nenhuma rota; registrar ou remover.
 

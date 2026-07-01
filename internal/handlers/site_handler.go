@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"context"
 	"go-checker/internal/middlewares"
 	"go-checker/internal/monitor"
 	"go-checker/internal/repository"
@@ -15,14 +14,14 @@ type SiteHandler struct {
 	siteRepo       repository.SiteRepo
 	siteStatusRepo repository.SiteStatusRepo
 	monitorManager *monitor.MonitorManager
-	ctx            context.Context
 }
 
-func NewSiteHandler(siteRepo *repository.SiteRepo, siteStatusRepo *repository.SiteStatusRepo, monitorManager *monitor.MonitorManager, ctx context.Context) *SiteHandler {
-	return &SiteHandler{siteRepo: *siteRepo, siteStatusRepo: *siteStatusRepo, monitorManager: monitorManager, ctx: ctx}
+func NewSiteHandler(siteRepo *repository.SiteRepo, siteStatusRepo *repository.SiteStatusRepo, monitorManager *monitor.MonitorManager) *SiteHandler {
+	return &SiteHandler{siteRepo: *siteRepo, siteStatusRepo: *siteStatusRepo, monitorManager: monitorManager}
 }
 
 func (h *SiteHandler) CreateSite(c *gin.Context) {
+	ctx := c.Request.Context()
 	userID, ok := middlewares.GetUserID(c)
 	if !ok {
 		return
@@ -38,7 +37,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 		return
 	}
 
-	newSite, err := h.siteRepo.AddSite(body.URL, body.CheckInterval, userID)
+	newSite, err := h.siteRepo.AddSite(ctx, body.URL, body.CheckInterval, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "falha ao criar o site"})
 		return
@@ -50,6 +49,7 @@ func (h *SiteHandler) CreateSite(c *gin.Context) {
 }
 
 func (h *SiteHandler) DeleteSite(c *gin.Context) {
+	ctx := c.Request.Context()
 	idParam := c.Param("id")
 	siteID, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -62,7 +62,7 @@ func (h *SiteHandler) DeleteSite(c *gin.Context) {
 		return
 	}
 
-	if err := h.siteRepo.DeleteSite(uint(siteID), userID); err != nil {
+	if err := h.siteRepo.DeleteSite(ctx, uint(siteID), userID); err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}
@@ -71,6 +71,7 @@ func (h *SiteHandler) DeleteSite(c *gin.Context) {
 }
 
 func (h *SiteHandler) UpdateSite(c *gin.Context) {
+	ctx := c.Request.Context()
 	idParam := c.Param("id")
 	siteID, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -93,7 +94,7 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 		return
 	}
 
-	if err := h.siteRepo.UpdateSite(uint(siteID), userID, body.URL, body.CheckInterval); err != nil {
+	if err := h.siteRepo.UpdateSite(ctx, uint(siteID), userID, body.URL, body.CheckInterval); err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}
@@ -102,6 +103,7 @@ func (h *SiteHandler) UpdateSite(c *gin.Context) {
 }
 
 func (h *SiteHandler) GetSiteById(c *gin.Context) {
+	ctx := c.Request.Context()
 	idParam := c.Param("id")
 	siteID, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -114,7 +116,7 @@ func (h *SiteHandler) GetSiteById(c *gin.Context) {
 		return
 	}
 
-	site, err := h.siteRepo.GetSiteById(uint(siteID), userID)
+	site, err := h.siteRepo.GetSiteById(ctx, uint(siteID), userID)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
@@ -124,12 +126,13 @@ func (h *SiteHandler) GetSiteById(c *gin.Context) {
 }
 
 func (h *SiteHandler) GetAllSitesByUser(c *gin.Context) {
+	ctx := c.Request.Context()
 	userID, ok := middlewares.GetUserID(c)
 	if !ok {
 		return
 	}
 
-	sites, err := h.siteRepo.GetSitesByUserId(userID)
+	sites, err := h.siteRepo.GetSitesByUserId(ctx, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "falha em pegar todos os sites"})
 		return
@@ -139,12 +142,13 @@ func (h *SiteHandler) GetAllSitesByUser(c *gin.Context) {
 }
 
 func (h *SiteHandler) GetDashboardByUser(c *gin.Context) {
+	ctx := c.Request.Context()
 	userID, ok := middlewares.GetUserID(c)
 	if !ok {
 		return
 	}
 
-	dashboard, err := h.siteRepo.GetAllSiteInfoByUserId(h.ctx, userID)
+	dashboard, err := h.siteRepo.GetAllSiteInfoByUserId(ctx, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "falha ao juntar o dashboard"})
 		return

@@ -34,7 +34,7 @@ func NewSiteRepo(db *gorm.DB) *SiteRepo {
 	return &SiteRepo{DB: db}
 }
 
-func (r *SiteRepo) AddSite(url string, interval int, user uint) (*Site, error) {
+func (r *SiteRepo) AddSite(ctx context.Context, url string, interval int, user uint) (*Site, error) {
 	if interval <= 0 {
 		interval = 60
 	}
@@ -48,16 +48,16 @@ func (r *SiteRepo) AddSite(url string, interval int, user uint) (*Site, error) {
 		UpdatedAt:     time.Now(),
 	}
 
-	if err := r.DB.Create(&site).Error; err != nil {
+	if err := r.DB.WithContext(ctx).Create(&site).Error; err != nil {
 		return nil, err
 	}
 
 	return &site, nil
 }
 
-func (r *SiteRepo) UpdateSite(siteId uint, userId uint, url string, interval int) error {
+func (r *SiteRepo) UpdateSite(ctx context.Context, siteId uint, userId uint, url string, interval int) error {
 	var site Site
-	if err := r.DB.Where("id = ? AND user_id = ?", siteId, userId).First(&site).Error; err != nil {
+	if err := r.DB.WithContext(ctx).Where("id = ? AND user_id = ?", siteId, userId).First(&site).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return errors.New("site não encontrado ou site não pertence ao user")
 		}
@@ -79,8 +79,8 @@ func (r *SiteRepo) UpdateSite(siteId uint, userId uint, url string, interval int
 	return r.DB.Model(&site).Updates(updates).Error
 }
 
-func (r *SiteRepo) DeleteSite(siteId uint, userId uint) error {
-	result := r.DB.Where("id = ? AND user_id = ?", siteId, userId).Delete(&Site{})
+func (r *SiteRepo) DeleteSite(ctx context.Context, siteId uint, userId uint) error {
+	result := r.DB.WithContext(ctx).Where("id = ? AND user_id = ?", siteId, userId).Delete(&Site{})
 
 	if result.RowsAffected == 0 {
 		return errors.New("site não encontrado ou site não pertence ao user")
@@ -89,27 +89,27 @@ func (r *SiteRepo) DeleteSite(siteId uint, userId uint) error {
 	return result.Error
 }
 
-func (r *SiteRepo) GetSiteById(siteId uint, userId uint) (*Site, error) {
+func (r *SiteRepo) GetSiteById(ctx context.Context, siteId uint, userId uint) (*Site, error) {
 	var site Site
 
-	if err := r.DB.Where("id = ? AND user_id = ?", siteId, userId).First(&site).Error; err != nil {
+	if err := r.DB.WithContext(ctx).Where("id = ? AND user_id = ?", siteId, userId).First(&site).Error; err != nil {
 		return nil, err
 	}
 
 	return &site, nil
 }
 
-func (r *SiteRepo) GetSitesByUserId(userId uint) ([]Site, error) {
+func (r *SiteRepo) GetSitesByUserId(ctx context.Context, userId uint) ([]Site, error) {
 	var sites []Site
-	err := r.DB.Where("user_id = ?", userId).Find(&sites).Error
+	err := r.DB.WithContext(ctx).Where("user_id = ?", userId).Find(&sites).Error
 	return sites, err
 }
 
 // Funções para filtros //
 
-func (r *SiteRepo) GetSitesBySiteStatus(siteStatus string, userId uint) ([]Site, error) {
+func (r *SiteRepo) GetSitesBySiteStatus(ctx context.Context, siteStatus string, userId uint) ([]Site, error) {
 	var sites []Site
-	err := r.DB.Where("status = ? AND user_id = ?", siteStatus, userId).Find(&sites).Error
+	err := r.DB.WithContext(ctx).Where("status = ? AND user_id = ?", siteStatus, userId).Find(&sites).Error
 	return sites, err
 }
 
