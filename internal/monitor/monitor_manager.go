@@ -3,7 +3,8 @@ package monitor
 import (
 	"context"
 	"go-checker/internal/repository"
-	"log"
+
+	"go.uber.org/zap"
 )
 
 type MonitorManager struct {
@@ -25,11 +26,11 @@ func NewMonitorManager(ctx context.Context, repo *repository.SiteRepo, statusRep
 func (m *MonitorManager) Start() {
 	sites, err := m.repo.GetAllSitesToMonitoring(m.ctx)
 	if err != nil {
-		log.Println("❌ Erro ao buscar sites para monitoramento:", err)
-	} else {
-		for _, site := range sites {
-			go monitorSite(m.ctx, m.repo, m.statusRepo, site)
-		}
+		zap.L().Error("Erro ao buscar sites para monitoramento", zap.Error(err))
+		return
+	}
+	for _, site := range sites {
+		go monitorSite(m.ctx, m.repo, m.statusRepo, site)
 	}
 
 	go m.listenForNewSites()
@@ -38,9 +39,9 @@ func (m *MonitorManager) Start() {
 func (m *MonitorManager) Register(site repository.Site) {
 	select {
 	case m.newSites <- site:
-		log.Printf("📡 Site %s registrado para monitoramento dinâmico\n", site.URL)
+		zap.L().Info("Site registrado para monitoramento dinâmico", zap.String("site_url", site.URL), zap.Uint("site_id", site.ID))
 	default:
-		log.Printf("⚠️ Canal de novos sites cheio, site %s não foi registrado\n", site.URL)
+		zap.L().Warn("Canal de novos sites cheio, site não foi registrado", zap.String("site_url", site.URL), zap.Uint("site_id", site.ID))
 	}
 }
 

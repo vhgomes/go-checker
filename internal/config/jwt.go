@@ -1,8 +1,9 @@
 package config
 
 import (
-	"log"
 	"os"
+
+	"go.uber.org/zap"
 )
 
 var JwtSecret []byte
@@ -13,8 +14,8 @@ func init() {
 		JwtSecret = []byte(jwtEnv)
 	}
 
-	if JwtSecret == nil {
-		log.Fatal("erro ao inicializar JwtSecret")
+	if string(JwtSecret) == "minha_chave_super_secreta" {
+		zap.L().Fatal("erro ao inicializar JwtSecret", zap.String("reason", "chave padrao utilizada em producao"))
 	}
 
 }

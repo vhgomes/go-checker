@@ -3,9 +3,10 @@ package monitor
 import (
 	"context"
 	"go-checker/internal/repository"
-	"log"
 	"net/http"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 const (
@@ -33,7 +34,7 @@ func monitorSite(ctx context.Context, repo *repository.SiteRepo, statusRepo *rep
 	for {
 		select {
 		case <-ctx.Done():
-			log.Printf("🛑 Monitoramento encerrado para site %s\n", site.URL)
+			zap.L().Info("Monitoramento encerrado para site", zap.String("site_url", site.URL))
 			return
 		case <-ticker.C:
 			checkSite(ctx, repo, statusRepo, site)
@@ -53,7 +54,7 @@ func checkSite(ctx context.Context, repo *repository.SiteRepo, statusRepo *repos
 	}
 
 	if err := repo.UpdateStatus(checkCtx, site.ID, status); err != nil {
-		log.Printf("❌ Erro ao atualizar status do site %d: %v", site.ID, err)
+		zap.L().Error("Erro ao atualizar status do site", zap.Uint("site_id", site.ID), zap.Error(err))
 		return
 	}
 
@@ -65,12 +66,16 @@ func checkSite(ctx context.Context, repo *repository.SiteRepo, statusRepo *repos
 		responseTime,
 		time.Now(),
 	); err != nil {
-		log.Printf("❌ Erro ao inserir histórico do site %d: %v", site.ID, err)
+		zap.L().Error("Erro ao inserir histórico do site", zap.Uint("site_id", site.ID), zap.Error(err))
 		return
 	}
 
-	log.Printf("✅ Site %s %s (statusCode=%d, responseTime=%.3fs)\n",
-		site.URL, status, statusCode, responseTime)
+	zap.L().Info("Site verificado",
+		zap.String("site_url", site.URL),
+		zap.String("status", status),
+		zap.Int("status_code", statusCode),
+		zap.Float64("response_time", responseTime),
+	)
 }
 
 func doRequestWithRetry(ctx context.Context, url string) (int, float64) {
@@ -92,7 +97,7 @@ func doRequestWithRetry(ctx context.Context, url string) (int, float64) {
 		lastResponseTime = responseTime
 
 		if err != nil {
-			log.Printf("⚠️  Tentativa %d/%d falhou para %s: %v", attempt+1, maxRetries, url, err)
+			zap.L().Warn("Tentativa falhou", zap.Int("attempt", attempt+1), zap.Int("max_retries", maxRetries), zap.String("url", url), zap.Error(err))
 			continue
 		}
 

@@ -2,9 +2,9 @@ package cronjobs
 
 import (
 	"context"
-	"log"
 
 	"github.com/robfig/cron/v3"
+	"go.uber.org/zap"
 )
 
 type CronJobManager struct {
@@ -35,12 +35,12 @@ func (cm *CronJobManager) StartScheduler() {
 		schedule := job.Schedule()
 		if _, err := cm.cron.AddFunc(schedule, func() {
 			if err := job.Run(cm.context); err != nil {
-				log.Printf("Error in job %s: %v", job.Name(), err)
+				zap.L().Error("Error in job", zap.String("job_name", job.Name()), zap.Error(err))
 			} else {
-				log.Printf("Job %s executed successfully", job.Name())
+				zap.L().Info("Job executed successfully", zap.String("job_name", job.Name()))
 			}
 		}); err != nil {
-			log.Printf("Failed to schedule job %s: %v", job.Name(), err)
+			zap.L().Error("Failed to schedule job", zap.String("job_name", job.Name()), zap.Error(err))
 		}
 	}
 	cm.cron.Start()

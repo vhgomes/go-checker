@@ -3,12 +3,12 @@ package cronjobs
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"go-checker/internal/repository"
-	"log"
-	"strconv"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 type DashboardCronJob struct {
@@ -43,40 +43,40 @@ func (d DashboardCronJob) Run(ctx context.Context) error {
 
 	users, err := d.userRepo.GetAllUsersId(ctx)
 	if err != nil {
-		log.Println("error to get all the users")
+		zap.L().Error("error to get all the users", zap.Error(err))
 		return err
 	}
 
 	for _, user := range users {
 		select {
 		case <-ctx.Done():
-			log.Println("execution canceled by context!")
+			zap.L().Warn("execution canceled by context!")
 			return ctx.Err()
 		default:
 			info, err := d.siteRepo.GetAllSiteInfoByUserId(ctx, user)
 			if err != nil {
-				log.Printf("error from compute the dashboard of the user: %d: %v", user, err)
+				zap.L().Error("error from compute the dashboard of the user", zap.Uint("user_id", user), zap.Error(err))
 				continue
 			}
 
 			data, err := json.Marshal(info)
 			if err != nil {
-				log.Printf("error to serialize infos by user: %d: %v", user, err)
+				zap.L().Error("error to serialize infos by user", zap.Uint("user_id", user), zap.Error(err))
 				continue
 			}
 
-			key := "dashboard:user:" + strconv.Itoa(int(user))
+			key := fmt.Sprintf("dashboard:user:%d", user)
 
-			err = d.redis.Set(ctx, key, data, 5*time.Minute).Err()
+			err = d.redis.Set(ctx, key, data, 1*time.Minute).Err()
 			if err != nil {
-				log.Printf("error on save on redis of user: %d: %v", user, err)
+				zap.L().Error("error on save on redis of user", zap.Uint("user_id", user), zap.Error(err))
 				continue
 			}
 
-			log.Printf("user dashboard %d updated on redis", user)
+			zap.L().Info("user dashboard updated on redis", zap.Uint("user_id", user))
 		}
 	}
 
-	log.Printf("AllUsersDashboardJob ended in %s", time.Since(start))
+	zap.L().Info("AllUsersDashboardJob ended", zap.Duration("duration", time.Since(start)))
 	return nil
 }
