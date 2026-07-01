@@ -26,7 +26,7 @@ func SetupRouter(ctx context.Context, db *gorm.DB, redis *redis.Client) *gin.Eng
 	monitorManager.Start()
 
 	// handlers
-	siteHandler := handlers2.NewSiteHandler(siteRepo, siteStatusRepo, monitorManager, ctx)
+	siteHandler := handlers2.NewSiteHandler(siteRepo, siteStatusRepo, monitorManager)
 	userHandler := handlers2.NewUserHandler(userRepo)
 	siteStatusHandler := handlers2.NewSiteStatusHandler(siteStatusRepo)
 
@@ -58,8 +58,12 @@ func SetupRouter(ctx context.Context, db *gorm.DB, redis *redis.Client) *gin.Eng
 	}
 
 	//rotas publicas
-	router.POST("/register", userHandler.RegisterUser)
-	router.POST("/login", userHandler.Login)
+	public := router.Group("/")
+	public.Use(middlewares.AuthRateLimiter())
+	{
+		public.POST("/register", userHandler.RegisterUser)
+		public.POST("/login", userHandler.Login)
+	}
 
 	return router
 }

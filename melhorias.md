@@ -46,11 +46,11 @@ Plano de ação para elevar o projeto a nível sênior. Ordem sugerida: resolva 
   `AddSite`, `UpdateSite`, `DeleteSite`, `GetSiteById`, `GetSitesByUserId` e todo `SiteStatusRepo` não recebem/propagam `ctx`.
   **Fix:** todo método de repo que toca o banco recebe `ctx` como primeiro parâmetro e usa `.WithContext(ctx)`.
 
-- [ ] **Race condition em `CreateUser`** (check-then-create)
+- [x] **Race condition em `CreateUser`** (check-then-create)
   Duas requests concorrentes com o mesmo email podem passar pelo check antes de qualquer insert.
   **Fix:** remover check prévio, inserir direto, tratar erro de unique constraint especificamente.
 
-- [ ] **Zero validação de input**
+- [x] **Zero validação de input**
   URL sem validar formato/scheme, `check_interval` sem limite mínimo, email/senha sem validação em `RegisterUser`.
   **Fix:** `go-playground/validator` com tags de binding + rate limiter básico em `/login` e `/register`.
 
