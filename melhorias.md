@@ -34,13 +34,9 @@ Plano de ação para elevar o projeto a nível sênior. Ordem sugerida: resolva 
   `userAny, _ := c.Get("user_id"); userID := uint(userAny.(float64))` — panic se o tipo vier diferente.
   **Fix:** middleware injeta `userID uint` já validado no contexto; handlers usam helper único (`GetUserID(c)`).
 
-- [ ] **User enumeration no login** (`internal/repository/user_repo.go` — `Login`)
+- [x] **User enumeration no login** (`internal/repository/user_repo.go` — `Login`)
   Retorna `"usuário não encontrado"` vs `"senha incorreta"` como erros distintos, propagados ao cliente.
   **Fix:** mensagem genérica única ("credenciais inválidas") nos dois casos; detalhe só em log.
-
-- [ ] **GORM em uso — proibido no stack**
-  Reintroduz problemas que motivaram a migração para sqlc (queries implícitas, como o bug do IDOR acima).
-  **Fix:** migrar para `sqlc + pgx` contra Postgres, começando por `site_status_repo.go`.
 
 - [ ] **`context.Context` guardado como campo de struct** (`SiteHandler.ctx`)
   Vive pra sempre em vez de vir de `c.Request.Context()` a cada request — cancelamento por request não se propaga.

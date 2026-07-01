@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -46,13 +47,13 @@ func (r *UserRepo) Login(email, password string) (*User, error) {
 	var user User
 	if err := r.DB.Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errors.New("usuário não encontrado")
+			return nil, errors.New("credenciais inválidas ")
 		}
 		return nil, err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return nil, errors.New("senha incorreta")
+		return nil, errors.New("credenciais inválidas")
 	}
 
 	return &user, nil
