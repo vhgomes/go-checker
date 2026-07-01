@@ -4,21 +4,21 @@ import (
 	"context"
 	"go-checker/internal/repository"
 	"log"
-	"math/rand"
+	"net/http"
 	"time"
 )
 
-func StartMonitoring(ctx context.Context, repo *repository.SiteRepo, statusRepo *repository.SiteStatusRepo) {
-	sites, err := repo.GetAllSitesToMonitoring(ctx)
+const (
+	maxRetries     = 3
+	requestTimeout = 10 * time.Second
+	baseBackoff    = 500 * time.Millisecond
+)
 
-	if err != nil {
-		log.Println("❌ Erro ao buscar sites para monitoramento:", err)
-		return
-	}
-
-	for _, site := range sites {
-		go monitorSite(ctx, repo, statusRepo, site)
-	}
+var httpClient = &http.Client{
+	Timeout: requestTimeout,
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
+	},
 }
 
 func monitorSite(ctx context.Context, repo *repository.SiteRepo, statusRepo *repository.SiteStatusRepo, site repository.Site) {
@@ -36,22 +36,19 @@ func monitorSite(ctx context.Context, repo *repository.SiteRepo, statusRepo *rep
 			log.Printf("🛑 Monitoramento encerrado para site %s\n", site.URL)
 			return
 		case <-ticker.C:
-			checkSiteRandom(ctx, repo, site, statusRepo)
+			checkSite(ctx, repo, statusRepo, site)
 		}
 	}
 }
 
-func checkSiteRandom(ctx context.Context, repo *repository.SiteRepo, site repository.Site, statusRepo *repository.SiteStatusRepo) {
-	checkCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+func checkSite(ctx context.Context, repo *repository.SiteRepo, statusRepo *repository.SiteStatusRepo, site repository.Site) {
+	checkCtx, cancel := context.WithTimeout(ctx, requestTimeout*time.Duration(maxRetries)+baseBackoff*time.Duration(maxRetries))
 	defer cancel()
 
-	responseTime := rand.Float64()*1.9 + 0.1
-
-	statusCodes := []int{200, 200, 200, 404, 500} // mais chances de 200
-	statusCode := statusCodes[rand.Intn(len(statusCodes))]
+	statusCode, responseTime := doRequestWithRetry(checkCtx, site.URL)
 
 	status := "online"
-	if statusCode >= 400 {
+	if statusCode == 0 || statusCode >= 400 {
 		status = "offline"
 	}
 
@@ -76,35 +73,59 @@ func checkSiteRandom(ctx context.Context, repo *repository.SiteRepo, site reposi
 		site.URL, status, statusCode, responseTime)
 }
 
-//func checkSite(repo *repository.SiteRepo, site repository.Site, statusRepo *repository.SiteStatusRepo) {
-//	start := time.Now()
-//	resp, err := http.Get(site.URL)
-//	responseTime := time.Since(start).Seconds()
-//
-//	status := "online"
-//	statusCode := 0
-//	if err != nil || resp.StatusCode >= 400 {
-//		status = "offline"
-//		if resp != nil {
-//			statusCode = resp.StatusCode
-//		}
-//	} else {
-//		statusCode = resp.StatusCode
-//	}
-//
-//	if err := repo.UpdateStatus(site.ID, status); err != nil {
-//		log.Printf("Erro ao atualizar status do site %d: %v", site.ID, err)
-//	}
-//
-//	if err := statusRepo.Insert(
-//		site.ID,
-//		status,
-//		statusCode,
-//		responseTime,
-//		time.Now(),
-//	); err != nil {
-//		log.Printf("Erro ao inserir histórico do site %d: %v", site.ID, err)
-//	}
-//
-//	log.Printf("Site %s %s (statusCode=%d, responseTime=%.3fs)\n", site.URL, status, statusCode, responseTime)
-//}
+func doRequestWithRetry(ctx context.Context, url string) (int, float64) {
+	var lastStatusCode int
+	var lastResponseTime float64
+
+	for attempt := range maxRetries {
+		if attempt > 0 {
+			backoff := baseBackoff * (1 << attempt) // 1s, 2s, 4s...
+			select {
+			case <-ctx.Done():
+				return lastStatusCode, lastResponseTime
+			case <-time.After(backoff):
+			}
+		}
+
+		statusCode, responseTime, err := doRequest(ctx, url)
+		lastStatusCode = statusCode
+		lastResponseTime = responseTime
+
+		if err != nil {
+			log.Printf("⚠️  Tentativa %d/%d falhou para %s: %v", attempt+1, maxRetries, url, err)
+			continue
+		}
+
+		return statusCode, responseTime
+	}
+
+	return lastStatusCode, lastResponseTime
+}
+
+func doRequest(ctx context.Context, url string) (statusCode int, responseTime float64, err error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	req.Header.Set("User-Agent", "go-checker/1.0")
+
+	start := time.Now()
+	resp, err := httpClient.Do(req)
+	responseTime = time.Since(start).Seconds()
+
+	if err != nil {
+		req2, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		req2.Header.Set("User-Agent", "go-checker/1.0")
+
+		start = time.Now()
+		resp, err = httpClient.Do(req2)
+		responseTime = time.Since(start).Seconds()
+		if err != nil {
+			return 0, responseTime, err
+		}
+	}
+
+	defer resp.Body.Close()
+	return resp.StatusCode, responseTime, nil
+}
