@@ -4,13 +4,17 @@ import (
 	"context"
 	"go-checker/internal/config"
 	"go-checker/internal/server"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"go.uber.org/zap"
 )
 
 func main() {
+	config.InitLogger()
+	defer zap.L().Sync()
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -19,7 +23,7 @@ func main() {
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 		<-sigChan
-		log.Println("🚦 Encerrando servidor...")
+		zap.L().Info("🚦 Encerrando servidor...")
 		cancel()
 	}()
 
@@ -28,8 +32,9 @@ func main() {
 
 	router := server.SetupRouter(ctx, db, redis)
 
-	log.Println("Server Running on :8080")
-	if err := router.Run(":8080"); err != nil {
-		log.Fatal(err)
+	port := config.GetEnvOrDefault("PORT", "8080")
+	zap.L().Info("Server Running on :" + port)
+	if err := router.Run(":" + port); err != nil {
+		zap.L().Fatal("Erro ao iniciar o servidor", zap.Error(err))
 	}
 }

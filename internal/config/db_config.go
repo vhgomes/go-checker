@@ -4,28 +4,30 @@ import (
 	"fmt"
 	"github.com/redis/go-redis/v9"
 	"go-checker/internal/repository"
+	"go.uber.org/zap"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"log"
 )
 
 func InitDB() *gorm.DB {
-	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+	dbName := GetEnvOrDefault("DB_NAME", "test.db")
+	db, err := gorm.Open(sqlite.Open(dbName), &gorm.Config{})
 	if err != nil {
-		panic("failed to connect database")
+		zap.L().Fatal("failed to connect database", zap.Error(err))
 	}
 
 	err = db.AutoMigrate(&repository.Site{}, &repository.User{}, &repository.SiteStatusHistory{})
 	if err != nil {
-		log.Fatal(err)
+		zap.L().Fatal("Erro ao conectar no banco", zap.Error(err))
 	}
 
 	return db
 }
 
 func InitRedis() *redis.Client {
+	redisAddr := GetEnvOrDefault("REDIS_ADDR", "localhost:6379")
 	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     redisAddr,
 		Password: "",
 		DB:       0,
 	})
