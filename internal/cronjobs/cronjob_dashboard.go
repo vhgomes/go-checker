@@ -3,10 +3,12 @@ package cronjobs
 import (
 	"context"
 	"encoding/json"
-	"github.com/redis/go-redis/v9"
 	"go-checker/internal/repository"
 	"log"
+	"strconv"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 type DashboardCronJob struct {
@@ -63,7 +65,7 @@ func (d DashboardCronJob) Run(ctx context.Context) error {
 				continue
 			}
 
-			key := "dashboard:user:" + string(rune(user))
+			key := "dashboard:user:" + strconv.Itoa(int(user))
 
 			err = d.redis.Set(ctx, key, data, 5*time.Minute).Err()
 			if err != nil {
