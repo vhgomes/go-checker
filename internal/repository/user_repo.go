@@ -22,14 +22,16 @@ type UserRepo struct {
 func NewUserRepo(db *gorm.DB) *UserRepo {
 	return &UserRepo{DB: db}
 }
-
 func (r *UserRepo) CreateUser(ctx context.Context, email, password, name string) error {
-	err := r.DB.WithContext(ctx).Where("email = ?", email).First(&User{}).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return errors.New("email já cadastrado")
-		}
+	var existingUser User
+	err := r.DB.WithContext(ctx).Where("email = ?", email).First(&existingUser).Error
+
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return err
+	}
+
+	if err == nil {
+		return errors.New("email já cadastrado")
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -42,10 +44,8 @@ func (r *UserRepo) CreateUser(ctx context.Context, email, password, name string)
 		Password: string(hashedPassword),
 		Name:     name,
 	}
-
 	return r.DB.WithContext(ctx).Create(&user).Error
 }
-
 func (r *UserRepo) Login(ctx context.Context, email, password string) (*User, error) {
 	var user User
 	if err := r.DB.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {

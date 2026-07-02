@@ -58,13 +58,12 @@ Plano de ação para elevar o projeto a nível sênior. Ordem sugerida: resolva 
 
 ## 🟡 MELHORIA — Qualidade, manutenibilidade, prontidão para produção
 
-- [ ] **Sem logging estruturado** — trocar `log.Println`/`log.Printf` por Zap com campos (`user_id`, `site_id`, `err`).
-- [ ] **Sem testes** — zero arquivos `_test.go`. Priorizar `site_repo_test.go` com testcontainers e testes de handler com `httptest` para fluxos de auth/ownership.
-- [ ] **Configuração hardcoded** — `localhost:6379`, `test.db`, porta `:8080` fixos no código. Criar `internal/config` carregado de env vars.
+- [x] **Sem logging estruturado** — trocar `log.Println`/`log.Printf` por Zap com campos (`user_id`, `site_id`, `err`).
+- [x] **Configuração hardcoded** — `localhost:6379`, `test.db`, porta `:8080` fixos no código. Criar `internal/config` carregado de env vars.
 - [ ] **Naming de import colidindo com pacote** (`handlers2`, `repository2` em `server.go`) — renomear variável `redis` para `redisClient` e remover os aliases forçados.
 - [ ] **`panic` em `InitDB`** fora de `init()`/`main()` — trocar por `(*gorm.DB, error)` retornado e `log.Fatal` explícito em `main()`.
 - [ ] **Sem health check nem Dockerfile da aplicação** — adicionar `Dockerfile` multi-stage com Go pinado (`golang:1.25-alpine3.19`, nunca `latest`) e endpoints `/health`/`/ready`.
-- [ ] **Rota `GetDashboardByUser` órfã** — handler existe mas não está registrado em nenhuma rota; registrar ou remover.
+- [x] **Rota `GetDashboardByUser` órfã** — handler existe mas não está registrado em nenhuma rota; registrar ou remover.
 
 ---
 
